@@ -1,11 +1,15 @@
 'use client'
 
+import { useState } from 'react'
 import { ADNBackdrop } from '@/components/three/ADNBackdrop'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
 import { CTAButton } from '@/components/ui/CTAButton'
+import { RolePickerModal } from '@/components/onboarding/RolePickerModal'
+import { EmailLoginModal } from '@/components/onboarding/EmailLoginModal'
 import { useUIStore } from '@/lib/store'
+import { usePrivy } from '@privy-io/react-auth'
 import { 
   Bot, 
   Heart, 
@@ -51,6 +55,16 @@ const featuredApps = [
 
 export default function Home() {
   const { } = useUIStore()
+  const { authenticated } = usePrivy()
+  const [showEmailLogin, setShowEmailLogin] = useState(false)
+  const [showRolePicker, setShowRolePicker] = useState(false)
+
+  // Debug logs
+  console.log('Home Debug:', {
+    authenticated,
+    showEmailLogin,
+    showRolePicker
+  })
 
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -79,7 +93,18 @@ export default function Home() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <CTAButton size="lg" glow className="group">
+              <CTAButton 
+                size="lg" 
+                glow 
+                className="group"
+                onClick={() => {
+                  if (authenticated) {
+                    setShowRolePicker(true)
+                  } else {
+                    setShowEmailLogin(true)
+                  }
+                }}
+              >
                 Comenzar Ahora
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
               </CTAButton>
@@ -175,6 +200,22 @@ export default function Home() {
           </motion.div>
         </div>
       </Section>
+
+      {/* Email Login Modal */}
+      <EmailLoginModal 
+        isOpen={showEmailLogin} 
+        onClose={() => setShowEmailLogin(false)}
+        onLoggedIn={() => {
+          setShowEmailLogin(false)
+          setShowRolePicker(true)
+        }}
+      />
+
+      {/* Role Picker Modal */}
+      <RolePickerModal 
+        isOpen={showRolePicker} 
+        onClose={() => setShowRolePicker(false)} 
+      />
     </div>
   )
 }

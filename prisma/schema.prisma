@@ -10,37 +10,80 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum Role {
+  usuario
+  psm
+}
+
 model User {
-  id            String    @id @default(cuid())
-  email         String?   @unique
-  privyId       String?   @unique
-  rolePreferred String    @default("usuario") // "usuario" | "psm"
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id             String   @id @default(cuid())
+  role           Role     @default(usuario)
+  email          String   @unique
+  walletAddress  String   @unique
+  privyId        String?  @unique
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   // Relations
-  profile       Profile?
+  profile        Profile?
+  patient        PatientProfile?
+  psm            PSMProfile?
   journalEntries JournalEntry[]
-  enrollments   Enrollment[]
+  enrollments    Enrollment[]
   contactMessages ContactMessage[]
 
   @@map("users")
 }
 
 model Profile {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  displayName String?
-  avatarUrl   String?
-  bio         String?
-  language    String   @default("es")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nombre    String
+  apellido  String
+  telefono  String
+  fechaNacimiento DateTime
+  ciudad    String
+  pais      String
+  avatarUrl String?
+  bio       String?
+  language  String   @default("es")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("profiles")
+}
+
+model PatientProfile {
+  id           String  @id @default(cuid())
+  userId       String  @unique
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tipoAtencion String
+  problematica String
+  preferenciaAsignacion String // "automatica" | "explorar"
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("patient_profiles")
+}
+
+model PSMProfile {
+  id                 String   @id @default(cuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cedulaProfesional  String
+  formacionAcademica String
+  experienciaAnios   Int
+  biografia          String?
+  especialidades     String   // JSON string array
+  participaSupervision  Boolean @default(false)
+  participaCursos       Boolean @default(false)
+  participaInvestigacion Boolean @default(false)
+  participaComunidad    Boolean @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("psm_profiles")
 }
 
 model ContactMessage {

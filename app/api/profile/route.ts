@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { userId, displayName, avatarUrl, bio, language } = body
+    const { userId, nombre, apellido, telefono, fechaNacimiento, ciudad, pais, avatarUrl, bio, language } = body
 
     if (!userId) {
       return NextResponse.json(
@@ -17,14 +17,24 @@ export async function POST(request: NextRequest) {
     const profile = await prisma.profile.upsert({
       where: { userId },
       update: {
-        displayName,
+        nombre,
+        apellido,
+        telefono,
+        fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : undefined,
+        ciudad,
+        pais,
         avatarUrl,
         bio,
         language: language || 'es'
       },
       create: {
         userId,
-        displayName,
+        nombre,
+        apellido,
+        telefono,
+        fechaNacimiento: fechaNacimiento ? new Date(fechaNacimiento) : new Date(),
+        ciudad,
+        pais,
         avatarUrl,
         bio,
         language: language || 'es'
@@ -64,7 +74,7 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             email: true,
-            rolePreferred: true,
+            role: true,
             createdAt: true
           }
         }

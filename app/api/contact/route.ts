@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
             select: {
               id: true,
               email: true,
-              rolePreferred: true
+              role: true
             }
           }
         }

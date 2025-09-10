@@ -5,8 +5,9 @@ import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
 import { CTAButton } from '@/components/ui/CTAButton'
 import { Bot, Send, MessageSquare, Brain, Sparkles } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
+import { useUIStore } from '@/lib/store'
 
 interface Message {
   id: string
@@ -16,6 +17,7 @@ interface Message {
 }
 
 export default function MotusAIPage() {
+  const { role } = useUIStore()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -26,6 +28,13 @@ export default function MotusAIPage() {
   ])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  // Fix hydration issue
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
@@ -40,18 +49,73 @@ export default function MotusAIPage() {
     setMessages(prev => [...prev, userMessage])
     setInputValue('')
     setIsLoading(true)
+    setError(null)
 
-    // Simulate AI response
-    setTimeout(() => {
+    try {
+      const requestBody = {
+        messages: [...messages, userMessage].map(msg => ({
+          id: msg.id,
+          content: msg.content,
+          isUser: msg.isUser
+        })),
+        userRole: role || 'usuario'
+      }
+      
+      console.log('Sending request to API:', requestBody)
+      
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      })
+      
+      console.log('Response status:', response.status)
+      console.log('Response headers:', Object.fromEntries(response.headers.entries()))
+
+      if (!response.ok) {
+        let errorMessage = 'Error al procesar la solicitud'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.error || errorMessage
+        } catch {
+          // If response is not JSON, use status text
+          errorMessage = response.statusText || errorMessage
+        }
+        throw new Error(errorMessage)
+      }
+
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Respuesta del servidor no es válida')
+      }
+
+      const data = await response.json()
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: 'Gracias por compartir eso conmigo. Es importante que reconozcas tus emociones. ¿Te gustaría hablar más sobre cómo te sientes o necesitas alguna técnica específica para manejar esta situación?',
+        content: data.message,
         isUser: false,
         timestamp: new Date()
       }
+      
       setMessages(prev => [...prev, aiMessage])
+    } catch (error) {
+      console.error('Error sending message:', error)
+      setError(error instanceof Error ? error.message : 'Error al conectar con MotusAI')
+      
+      // Fallback message
+      const fallbackMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Lo siento, estoy experimentando dificultades técnicas. Por favor, intenta de nuevo en unos momentos.',
+        isUser: false,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, fallbackMessage])
+    } finally {
       setIsLoading(false)
-    }, 1500)
+    }
   }
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -96,9 +160,18 @@ export default function MotusAIPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold">MotusAI</h3>
-                    <p className="text-sm text-muted-foreground">En línea</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isLoading ? 'Escribiendo...' : error ? 'Error de conexión' : 'En línea'}
+                    </p>
                   </div>
                 </div>
+
+                {/* Error Message */}
+                {error && (
+                  <div className="p-3 mx-4 mt-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                    <p className="text-sm text-red-400">{error}</p>
+                  </div>
+                )}
 
                 {/* Messages */}
                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -118,7 +191,7 @@ export default function MotusAIPage() {
                       >
                         <p className="text-sm">{message.content}</p>
                         <p className="text-xs opacity-70 mt-1">
-                          {message.timestamp.toLocaleTimeString()}
+                          {isClient ? message.timestamp.toLocaleTimeString() : '--:--:--'}
                         </p>
                       </div>
                     </motion.div>
@@ -216,3 +289,4 @@ export default function MotusAIPage() {
     </div>
   )
 }
+

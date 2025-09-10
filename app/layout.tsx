@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Footer } from "@/components/layout/Footer";
+import { PrivyProviderWrapper } from "@/components/PrivyProviderWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,20 +32,22 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${jura.variable} font-sans antialiased`}
       >
-        <ThemeProvider>
-          <div className="min-h-screen bg-background">
-            <div className="flex">
-              <Sidebar />
-              <div className="flex-1 lg:ml-0">
-                <Topbar />
-                <main className="min-h-[calc(100vh-4rem)]">
-                  {children}
-                </main>
-                <Footer />
+        <PrivyProviderWrapper>
+          <ThemeProvider>
+            <div className="min-h-screen bg-background">
+              <div className="flex">
+                <Sidebar />
+                <div className="flex-1 lg:ml-0">
+                  <Topbar />
+                  <main className="min-h-[calc(100vh-4rem)]">
+                    {children}
+                  </main>
+                  <Footer />
+                </div>
               </div>
             </div>
-          </div>
-        </ThemeProvider>
+          </ThemeProvider>
+        </PrivyProviderWrapper>
       </body>
     </html>
   );

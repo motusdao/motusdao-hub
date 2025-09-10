@@ -16,9 +16,18 @@ import {
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useUIStore } from '@/lib/store'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 
 export default function PerfilPage() {
-  const { role, isAuthenticated, userAddress } = useUIStore()
+  const { role } = useUIStore()
+  
+  // Privy authentication hooks
+  const { authenticated, user } = usePrivy()
+  const { wallets } = useWallets()
+  
+  // Get the primary wallet address
+  const primaryWallet = wallets.find(wallet => wallet.walletClientType === 'privy')
+  const userAddress = primaryWallet?.address || user?.wallet?.address
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     displayName: 'Usuario MotusDAO',
@@ -86,7 +95,7 @@ export default function PerfilPage() {
                   <p className="text-muted-foreground mb-4 capitalize">{role}</p>
                   
                   {/* Wallet Info */}
-                  {isAuthenticated && userAddress && (
+                  {authenticated && userAddress && (
                     <div className="mb-4 p-3 glass-card rounded-lg">
                       <div className="flex items-center justify-center space-x-2">
                         <Wallet className="w-4 h-4 text-mauve-500" />

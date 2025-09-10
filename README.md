@@ -75,16 +75,18 @@ motusdao-hub/
    ```
 
 3. **Configurar variables de entorno**
-   ```bash
-   cp .env.example .env
+   
+   Crear archivo `.env.local` con las siguientes variables:
+   ```env
+   # Privy Authentication Configuration
+   NEXT_PUBLIC_PRIVY_APP_ID=your_privy_app_id_here
+   PRIVY_APP_SECRET=your_privy_app_secret_here
+   
+   # Database URL for Prisma (if needed)
+   # DATABASE_URL="file:./dev.db"
    ```
    
-   Editar `.env` con tus valores:
-   ```env
-   DATABASE_URL="file:./dev.db"
-   PRIVY_APP_ID="your_privy_app_id"
-   PRIVY_APP_SECRET="your_privy_app_secret"
-   ```
+   **⚠️ Importante**: Nunca commites el archivo `.env.local` ya que contiene claves secretas.
 
 4. **Configurar base de datos**
    ```bash
@@ -99,6 +101,40 @@ motusdao-hub/
    ```
 
 La aplicación estará disponible en `http://localhost:3000`
+
+## 🎯 Sistema de Onboarding
+
+### Flujo de Registro Multi-Paso
+
+El sistema incluye un flujo de registro completo que se inicia al hacer clic en "Comenzar ahora":
+
+1. **Selector de Rol**: Modal para elegir entre Usuario o Profesional de Salud Mental
+2. **Conexión**: Conectar wallet (Privy) + validar email
+3. **Perfil**: Información personal básica
+4. **Perfil Específico**: 
+   - **Usuario**: Perfil terapéutico (tipo de atención, motivo de consulta)
+   - **PSM**: Datos profesionales (cédula, especialidades, experiencia)
+5. **Revisión**: Verificar toda la información
+6. **Blockchain**: Registro on-chain (placeholder)
+7. **Éxito**: Redirección según el rol
+
+### Características del Onboarding
+
+- ✅ **Validaciones robustas** con Zod y React Hook Form
+- ✅ **Persistencia parcial** en localStorage (Zustand)
+- ✅ **Diseño responsive** con glassmorphism
+- ✅ **Estados de carga** y manejo de errores
+- ✅ **Integración con Privy** para autenticación
+- ✅ **API routes** para registro off-chain
+- ✅ **Base de datos** con modelos específicos por rol
+
+### Probar el Onboarding
+
+1. Ve a `http://localhost:3000`
+2. Haz clic en "Comenzar ahora"
+3. Selecciona tu rol (Usuario o PSM)
+4. Completa el flujo de registro
+5. Verifica que los datos se guarden correctamente
 
 ## 📱 Funcionalidades por Rol
 
@@ -170,9 +206,12 @@ npm run db:seed      # Poblar DB con datos de ejemplo
 - [x] Documentación integrada
 - [x] Footer con formulario de contacto
 - [x] Datos de ejemplo (seeds)
+- [x] **Sistema de onboarding multi-paso**
+- [x] **Integración completa con Privy**
+- [x] **Registro de usuarios y profesionales**
+- [x] **Validaciones con Zod y React Hook Form**
 
 ### 🚧 En Desarrollo
-- [ ] Integración completa con Privy
 - [ ] Sistema de pagos con Transak/MiniPay
 - [ ] Integración con LLM para MotusAI
 - [ ] Sistema de notificaciones

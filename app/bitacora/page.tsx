@@ -17,7 +17,7 @@ import {
   TrendingUp
 } from 'lucide-react'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface JournalEntry {
   id: string
@@ -43,33 +43,11 @@ const moodColors = {
   neutral: 'text-gray-500'
 }
 
-// Mock journal entries
-const mockEntries: JournalEntry[] = [
-  {
-    id: '1',
-    content: 'Hoy me sentí muy motivado después de la sesión de meditación. Logré concentrarme mejor en el trabajo y me siento más tranquilo.',
-    mood: 'happy',
-    tags: ['meditación', 'trabajo', 'motivación'],
-    createdAt: new Date('2024-01-15')
-  },
-  {
-    id: '2',
-    content: 'Tuve una conversación difícil con mi familia. Me siento un poco abrumado pero sé que es importante comunicar mis sentimientos.',
-    mood: 'anxious',
-    tags: ['familia', 'comunicación', 'emociones'],
-    createdAt: new Date('2024-01-14')
-  },
-  {
-    id: '3',
-    content: 'Día tranquilo en casa. Disfruté leyendo un libro y cocinando. Me siento en paz conmigo mismo.',
-    mood: 'calm',
-    tags: ['lectura', 'cocina', 'paz'],
-    createdAt: new Date('2024-01-13')
-  }
-]
+// TODO: Replace with real user ID from auth context
+const MOCK_USER_ID = 'cmfdqk2iu0000rx649pnw5kvj'
 
 export default function BitacoraPage() {
-  const [entries, setEntries] = useState<JournalEntry[]>(mockEntries)
+  const [entries, setEntries] = useState<JournalEntry[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingEntry, setEditingEntry] = useState<JournalEntry | null>(null)
   const [formData, setFormData] = useState({
@@ -77,37 +55,87 @@ export default function BitacoraPage() {
     mood: 'neutral',
     tags: ''
   })
+  const [isLoading, setIsLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load entries on mount
+  useEffect(() => {
+    const loadEntries = async () => {
+      try {
+        const res = await fetch(`/api/bitacora?userId=${MOCK_USER_ID}`)
+        if (res.ok) {
+          const data = await res.json()
+          const formattedEntries = data.entries.map((entry: { id: string; content: string; mood: string; tags: string | null; createdAt: string }) => ({
+            id: entry.id,
+            content: entry.content,
+            mood: entry.mood,
+            tags: entry.tags || [],
+            createdAt: new Date(entry.createdAt)
+          }))
+          setEntries(formattedEntries)
+        }
+      } catch (error) {
+        console.error('Failed to load entries:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    loadEntries()
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
-    if (editingEntry) {
-      // Update existing entry
-      setEntries(prev => prev.map(entry => 
-        entry.id === editingEntry.id 
-          ? {
-              ...entry,
-              content: formData.content,
-              mood: formData.mood,
-              tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
-            }
-          : entry
-      ))
-      setEditingEntry(null)
-    } else {
-      // Create new entry
-      const newEntry: JournalEntry = {
-        id: Date.now().toString(),
+    setIsSubmitting(true)
+
+    try {
+      const payload = {
+        userId: MOCK_USER_ID,
         content: formData.content,
         mood: formData.mood,
-        tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean),
-        createdAt: new Date()
+        tags: formData.tags.split(',').map(tag => tag.trim()).filter(Boolean)
       }
-      setEntries(prev => [newEntry, ...prev])
-    }
 
-    setFormData({ content: '', mood: 'neutral', tags: '' })
-    setShowForm(false)
+      const res = await fetch('/api/bitacora', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      })
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}))
+        console.error('Failed to save entry:', error)
+        alert('No se pudo guardar la entrada. Intenta nuevamente.')
+        return
+      }
+
+      const result = await res.json()
+      const newEntry: JournalEntry = {
+        id: result.entry.id,
+        content: result.entry.content,
+        mood: result.entry.mood,
+        tags: result.entry.tags ? JSON.parse(result.entry.tags) : [],
+        createdAt: new Date(result.entry.createdAt)
+      }
+
+      if (editingEntry) {
+        setEntries(prev => prev.map(entry => 
+          entry.id === editingEntry.id ? newEntry : entry
+        ))
+        setEditingEntry(null)
+      } else {
+        setEntries(prev => [newEntry, ...prev])
+      }
+
+      setFormData({ content: '', mood: 'neutral', tags: '' })
+      setShowForm(false)
+    } catch (error) {
+      console.error('Error saving entry:', error)
+      alert('Ocurrió un error inesperado. Intenta nuevamente.')
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleEdit = (entry: JournalEntry) => {
@@ -120,8 +148,25 @@ export default function BitacoraPage() {
     setShowForm(true)
   }
 
-  const handleDelete = (id: string) => {
-    setEntries(prev => prev.filter(entry => entry.id !== id))
+  const handleDelete = async (id: string) => {
+    if (!confirm('¿Estás seguro de que quieres eliminar esta entrada?')) return
+
+    try {
+      const res = await fetch(`/api/bitacora?id=${id}`, {
+        method: 'DELETE'
+      })
+
+      if (!res.ok) {
+        console.error('Failed to delete entry')
+        alert('No se pudo eliminar la entrada. Intenta nuevamente.')
+        return
+      }
+
+      setEntries(prev => prev.filter(entry => entry.id !== id))
+    } catch (error) {
+      console.error('Error deleting entry:', error)
+      alert('Ocurrió un error inesperado. Intenta nuevamente.')
+    }
   }
 
   const getMoodStats = () => {
@@ -133,6 +178,17 @@ export default function BitacoraPage() {
   }
 
   const moodStats = getMoodStats()
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-mauve-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando bitácora...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -203,6 +259,7 @@ export default function BitacoraPage() {
                           className="w-full p-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent resize-none"
                           rows={4}
                           required
+                          disabled={isSubmitting}
                         />
                       </div>
 
@@ -216,11 +273,12 @@ export default function BitacoraPage() {
                               key={mood}
                               type="button"
                               onClick={() => setFormData(prev => ({ ...prev, mood }))}
+                              disabled={isSubmitting}
                               className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
                                 formData.mood === mood
                                   ? 'border-mauve-500 bg-mauve-500/20'
                                   : 'border-white/10 hover:border-white/20'
-                              }`}
+                              } ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
                             >
                               <Icon className={`w-5 h-5 ${moodColors[mood as keyof typeof moodColors]}`} />
                               <span className="capitalize">{mood}</span>
@@ -239,12 +297,17 @@ export default function BitacoraPage() {
                           onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                           placeholder="trabajo, familia, ejercicio..."
                           className="w-full p-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent"
+                          disabled={isSubmitting}
                         />
                       </div>
 
                       <div className="flex space-x-4">
-                        <CTAButton type="submit" size="lg">
-                          {editingEntry ? 'Actualizar' : 'Guardar'} Entrada
+                        <CTAButton 
+                          type="submit" 
+                          size="lg"
+                          disabled={isSubmitting}
+                        >
+                          {isSubmitting ? 'Guardando...' : editingEntry ? 'Actualizar' : 'Guardar'} Entrada
                         </CTAButton>
                         <CTAButton
                           type="button"
@@ -255,6 +318,7 @@ export default function BitacoraPage() {
                             setEditingEntry(null)
                             setFormData({ content: '', mood: 'neutral', tags: '' })
                           }}
+                          disabled={isSubmitting}
                         >
                           Cancelar
                         </CTAButton>
@@ -266,75 +330,95 @@ export default function BitacoraPage() {
 
               {/* Journal Entries */}
               <div className="space-y-6">
-                {entries.map((entry, index) => {
-                  const MoodIcon = moodIcons[entry.mood as keyof typeof moodIcons]
-                  return (
-                    <motion.div
-                      key={entry.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.8, delay: 0.3 + index * 0.1 }}
-                    >
-                      <GlassCard className="p-6">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                              entry.mood === 'happy' ? 'bg-yellow-500/20' :
-                              entry.mood === 'sad' ? 'bg-blue-500/20' :
-                              entry.mood === 'anxious' ? 'bg-red-500/20' :
-                              entry.mood === 'calm' ? 'bg-green-500/20' :
-                              'bg-gray-500/20'
-                            }`}>
-                              <MoodIcon className={`w-5 h-5 ${moodColors[entry.mood as keyof typeof moodColors]}`} />
+                {entries.length === 0 ? (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8, delay: 0.3 }}
+                  >
+                    <GlassCard className="p-8 text-center">
+                      <BookOpen className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">No hay entradas aún</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Comienza escribiendo tu primera entrada en la bitácora
+                      </p>
+                      <CTAButton onClick={() => setShowForm(true)}>
+                        <Plus className="w-4 h-4 mr-2" />
+                        Crear primera entrada
+                      </CTAButton>
+                    </GlassCard>
+                  </motion.div>
+                ) : (
+                  entries.map((entry, index) => {
+                    const MoodIcon = moodIcons[entry.mood as keyof typeof moodIcons]
+                    return (
+                      <motion.div
+                        key={entry.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8, delay: 0.3 + index * 0.1 }}
+                      >
+                        <GlassCard className="p-6">
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                                entry.mood === 'happy' ? 'bg-yellow-500/20' :
+                                entry.mood === 'sad' ? 'bg-blue-500/20' :
+                                entry.mood === 'anxious' ? 'bg-red-500/20' :
+                                entry.mood === 'calm' ? 'bg-green-500/20' :
+                                'bg-gray-500/20'
+                              }`}>
+                                <MoodIcon className={`w-5 h-5 ${moodColors[entry.mood as keyof typeof moodColors]}`} />
+                              </div>
+                              <div>
+                                <h3 className="font-semibold capitalize">{entry.mood}</h3>
+                                <p className="text-sm text-muted-foreground flex items-center">
+                                  <Calendar className="w-4 h-4 mr-1" />
+                                  {entry.createdAt.toLocaleDateString('es-ES', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                  })}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h3 className="font-semibold capitalize">{entry.mood}</h3>
-                              <p className="text-sm text-muted-foreground flex items-center">
-                                <Calendar className="w-4 h-4 mr-1" />
-                                {entry.createdAt.toLocaleDateString('es-ES', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric'
-                                })}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => handleEdit(entry)}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(entry.id)}
-                              className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </div>
-
-                        <p className="text-foreground mb-4 leading-relaxed">
-                          {entry.content}
-                        </p>
-
-                        {entry.tags.length > 0 && (
-                          <div className="flex flex-wrap gap-2">
-                            {entry.tags.map((tag, tagIndex) => (
-                              <span
-                                key={tagIndex}
-                                className="px-3 py-1 bg-mauve-500/20 text-mauve-400 text-sm rounded-full"
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleEdit(entry)}
+                                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
                               >
-                                #{tag}
-                              </span>
-                            ))}
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(entry.id)}
+                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </GlassCard>
-                    </motion.div>
-                  )
-                })}
+
+                          <p className="text-foreground mb-4 leading-relaxed">
+                            {entry.content}
+                          </p>
+
+                          {entry.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {entry.tags.map((tag, tagIndex) => (
+                                <span
+                                  key={tagIndex}
+                                  className="px-3 py-1 bg-mauve-500/20 text-mauve-400 text-sm rounded-full"
+                                >
+                                  #{tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </GlassCard>
+                      </motion.div>
+                    )
+                  })
+                )}
               </div>
             </div>
 

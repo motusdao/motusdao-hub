@@ -11,8 +11,9 @@ async function main() {
     update: {},
     create: {
       email: 'usuario@motusdao.com',
+      walletAddress: '0x1234567890123456789012345678901234567890',
       privyId: 'privy_user_1',
-      rolePreferred: 'usuario'
+      role: 'usuario'
     }
   })
 
@@ -21,8 +22,9 @@ async function main() {
     update: {},
     create: {
       email: 'psm@motusdao.com',
+      walletAddress: '0x0987654321098765432109876543210987654321',
       privyId: 'privy_psm_1',
-      rolePreferred: 'psm'
+      role: 'psm'
     }
   })
 
@@ -32,7 +34,12 @@ async function main() {
     update: {},
     create: {
       userId: user1.id,
-      displayName: 'Usuario MotusDAO',
+      nombre: 'Usuario',
+      apellido: 'MotusDAO',
+      telefono: '+52 55 1234 5678',
+      fechaNacimiento: new Date('1990-01-01'),
+      ciudad: 'Ciudad de México',
+      pais: 'mexico',
       bio: 'Apasionado por el bienestar mental y la tecnología blockchain.',
       language: 'es'
     }
@@ -43,9 +50,44 @@ async function main() {
     update: {},
     create: {
       userId: user2.id,
-      displayName: 'Dr. María González',
+      nombre: 'María',
+      apellido: 'González',
+      telefono: '+52 55 9876 5432',
+      fechaNacimiento: new Date('1985-05-15'),
+      ciudad: 'Guadalajara',
+      pais: 'mexico',
       bio: 'Psicóloga clínica especializada en terapia cognitivo-conductual.',
       language: 'es'
+    }
+  })
+
+  // Create patient profile for user1
+  await prisma.patientProfile.upsert({
+    where: { userId: user1.id },
+    update: {},
+    create: {
+      userId: user1.id,
+      tipoAtencion: 'ansiedad',
+      problematica: 'Busco apoyo para manejar la ansiedad en situaciones sociales y laborales. Me siento abrumado por el estrés diario y necesito herramientas para relajarme.',
+      preferenciaAsignacion: 'automatica'
+    }
+  })
+
+  // Create PSM profile for user2
+  await prisma.pSMProfile.upsert({
+    where: { userId: user2.id },
+    update: {},
+    create: {
+      userId: user2.id,
+      cedulaProfesional: '12345678',
+      formacionAcademica: 'Licenciatura en Psicología, Universidad Nacional Autónoma de México',
+      experienciaAnios: 8,
+      biografia: 'Especialista en terapia cognitivo-conductual con más de 8 años de experiencia ayudando a personas con ansiedad, depresión y trastornos del estado de ánimo.',
+      especialidades: JSON.stringify(['ansiedad', 'depresion', 'cognitivo', 'estres']),
+      participaSupervision: true,
+      participaCursos: true,
+      participaInvestigacion: false,
+      participaComunidad: true
     }
   })
 

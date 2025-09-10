@@ -18,10 +18,8 @@ interface UIState {
   setTheme: (theme: 'light' | 'dark') => void
   toggleTheme: () => void
   
-  // Auth state
-  isAuthenticated: boolean
-  userAddress: string | null
-  setAuthState: (isAuthenticated: boolean, address?: string | null) => void
+  // Note: Authentication state is now handled by Privy directly
+  // No need for mock auth state in the store
 }
 
 export const useUIStore = create<UIState>()(
@@ -43,13 +41,7 @@ export const useUIStore = create<UIState>()(
         theme: state.theme === 'light' ? 'dark' : 'light' 
       })),
       
-      // Auth state
-      isAuthenticated: false,
-      userAddress: null,
-      setAuthState: (isAuthenticated, address = null) => set({ 
-        isAuthenticated, 
-        userAddress: address 
-      }),
+      // Authentication is now handled by Privy - no mock state needed
     }),
     {
       name: 'motusdao-ui-storage',
