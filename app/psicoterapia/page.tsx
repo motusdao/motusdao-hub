@@ -118,7 +118,7 @@ export default function PsicoterapiaPage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
           >
-            {features.map((feature) => {
+            {features.map((feature, index) => {
               const Icon = feature.icon
               return (
                 <GlassCard key={index} className="p-6 text-center">
