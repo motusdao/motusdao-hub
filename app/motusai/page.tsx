@@ -1,0 +1,218 @@
+'use client'
+
+import { GlassCard } from '@/components/ui/GlassCard'
+import { Section } from '@/components/ui/Section'
+import { GradientText } from '@/components/ui/GradientText'
+import { CTAButton } from '@/components/ui/CTAButton'
+import { Bot, Send, MessageSquare, Brain, Sparkles } from 'lucide-react'
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+
+interface Message {
+  id: string
+  content: string
+  isUser: boolean
+  timestamp: Date
+}
+
+export default function MotusAIPage() {
+  const [messages, setMessages] = useState<Message[]>([
+    {
+      id: '1',
+      content: '¡Hola! Soy MotusAI, tu asistente especializado en salud mental. ¿En qué puedo ayudarte hoy?',
+      isUser: false,
+      timestamp: new Date()
+    }
+  ])
+  const [inputValue, setInputValue] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim()) return
+
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: inputValue,
+      isUser: true,
+      timestamp: new Date()
+    }
+
+    setMessages(prev => [...prev, userMessage])
+    setInputValue('')
+    setIsLoading(true)
+
+    // Simulate AI response
+    setTimeout(() => {
+      const aiMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        content: 'Gracias por compartir eso conmigo. Es importante que reconozcas tus emociones. ¿Te gustaría hablar más sobre cómo te sientes o necesitas alguna técnica específica para manejar esta situación?',
+        isUser: false,
+        timestamp: new Date()
+      }
+      setMessages(prev => [...prev, aiMessage])
+      setIsLoading(false)
+    }, 1500)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      handleSendMessage()
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Section>
+        <div className="container mx-auto px-6">
+          {/* Header */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-8"
+          >
+            <div className="flex items-center justify-center mb-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mr-4">
+                <Bot className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <GradientText as="h1" className="text-4xl md:text-5xl font-bold">
+                  MotusAI
+                </GradientText>
+                <p className="text-muted-foreground">Tu asistente de salud mental</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Chat Interface */}
+            <div className="lg:col-span-3">
+              <GlassCard className="h-[600px] flex flex-col">
+                {/* Chat Header */}
+                <div className="p-4 border-b border-white/10 flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <Bot className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">MotusAI</h3>
+                    <p className="text-sm text-muted-foreground">En línea</p>
+                  </div>
+                </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                  {messages.map((message) => (
+                    <motion.div
+                      key={message.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
+                    >
+                      <div
+                        className={`max-w-[80%] p-3 rounded-lg ${
+                          message.isUser
+                            ? 'bg-gradient-mauve text-white'
+                            : 'glass-card text-foreground'
+                        }`}
+                      >
+                        <p className="text-sm">{message.content}</p>
+                        <p className="text-xs opacity-70 mt-1">
+                          {message.timestamp.toLocaleTimeString()}
+                        </p>
+                      </div>
+                    </motion.div>
+                  ))}
+                  
+                  {isLoading && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex justify-start"
+                    >
+                      <div className="glass-card p-3 rounded-lg">
+                        <div className="flex space-x-1">
+                          <div className="w-2 h-2 bg-mauve-500 rounded-full animate-bounce"></div>
+                          <div className="w-2 h-2 bg-mauve-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
+                          <div className="w-2 h-2 bg-mauve-500 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Input */}
+                <div className="p-4 border-t border-white/10">
+                  <div className="flex space-x-2">
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="Escribe tu mensaje..."
+                      className="flex-1 px-4 py-2 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent"
+                      disabled={isLoading}
+                    />
+                    <CTAButton
+                      onClick={handleSendMessage}
+                      disabled={!inputValue.trim() || isLoading}
+                      size="sm"
+                    >
+                      <Send className="w-4 h-4" />
+                    </CTAButton>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+
+            {/* Sidebar */}
+            <div className="space-y-6">
+              {/* Quick Actions */}
+              <GlassCard className="p-6">
+                <h3 className="font-semibold mb-4 flex items-center">
+                  <Sparkles className="w-5 h-5 mr-2 text-mauve-500" />
+                  Acciones Rápidas
+                </h3>
+                <div className="space-y-2">
+                  <CTAButton
+                    variant="secondary"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => setInputValue('¿Cómo puedo manejar la ansiedad?')}
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    Manejar Ansiedad
+                  </CTAButton>
+                  <CTAButton
+                    variant="secondary"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => setInputValue('Necesito técnicas de relajación')}
+                  >
+                    <MessageSquare className="w-4 h-4 mr-2" />
+                    Técnicas de Relajación
+                  </CTAButton>
+                </div>
+              </GlassCard>
+
+              {/* Chat History */}
+              <GlassCard className="p-6">
+                <h3 className="font-semibold mb-4">Historial de Chats</h3>
+                <div className="space-y-2">
+                  <div className="p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                    <p className="text-sm font-medium">Conversación de hoy</p>
+                    <p className="text-xs text-muted-foreground">Hace 2 horas</p>
+                  </div>
+                  <div className="p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                    <p className="text-sm font-medium">Técnicas de respiración</p>
+                    <p className="text-xs text-muted-foreground">Ayer</p>
+                  </div>
+                </div>
+              </GlassCard>
+            </div>
+          </div>
+        </div>
+      </Section>
+    </div>
+  )
+}
