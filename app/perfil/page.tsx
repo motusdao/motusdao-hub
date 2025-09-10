@@ -6,10 +6,6 @@ import { GradientText } from '@/components/ui/GradientText'
 import { CTAButton } from '@/components/ui/CTAButton'
 import { 
   User, 
-  Mail, 
-  Calendar, 
-  MapPin, 
-  Globe, 
   Save,
   Edit,
   Camera,

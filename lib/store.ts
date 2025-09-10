@@ -26,7 +26,7 @@ interface UIState {
 
 export const useUIStore = create<UIState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       // Role management
       role: 'usuario',
       setRole: (role) => set({ role }),

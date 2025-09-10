@@ -14,8 +14,7 @@ import {
   Smile,
   Frown,
   Meh,
-  TrendingUp,
-  Filter
+  TrendingUp
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useState } from 'react'

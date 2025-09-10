@@ -7,13 +7,10 @@ import { CTAButton } from '@/components/ui/CTAButton'
 import { 
   Eye, 
   Plus, 
-  Calendar, 
   Clock, 
-  Users, 
   FileText,
   MessageCircle,
   CheckCircle,
-  AlertCircle,
   TrendingUp
 } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -196,7 +193,7 @@ export default function SupervisionPage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="space-y-6"
           >
-            {filteredCases.map((case_, index) => (
+            {filteredCases.map((case_) => (
               <GlassCard key={case_.id} className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">

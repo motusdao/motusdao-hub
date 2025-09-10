@@ -7,7 +7,6 @@ import { CTAButton } from '@/components/ui/CTAButton'
 import { 
   Heart, 
   Users, 
-  Clock, 
   Star, 
   MessageCircle,
   Video,
@@ -119,7 +118,7 @@ export default function PsicoterapiaPage() {
             transition={{ duration: 0.8, delay: 0.2 }}
             className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
           >
-            {features.map((feature, index) => {
+            {features.map((feature) => {
               const Icon = feature.icon
               return (
                 <GlassCard key={index} className="p-6 text-center">
@@ -183,7 +182,7 @@ export default function PsicoterapiaPage() {
           >
             <h2 className="text-2xl font-bold text-center mb-8">Nuestros Terapeutas</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {therapists.map((therapist, index) => (
+              {therapists.map((therapist) => (
                 <GlassCard key={therapist.id} className="p-6">
                   <div className="flex items-start space-x-4 mb-4">
                     <div className="w-16 h-16 bg-gradient-to-r from-mauve-500 to-iris-500 rounded-full flex items-center justify-center">

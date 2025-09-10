@@ -12,7 +12,6 @@ import {
   CreditCard, 
   BookOpen, 
   User,
-  Menu,
   X
 } from 'lucide-react'
 import Link from 'next/link'
@@ -34,7 +33,6 @@ const iconMap = {
 export function Sidebar() {
   const { role, sidebarOpen, setSidebarOpen } = useUIStore()
   const pathname = usePathname()
-  const [isMobile, setIsMobile] = useState(false)
 
   const navigationItems = getNavigationItems(role)
 

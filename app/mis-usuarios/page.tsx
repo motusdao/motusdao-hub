@@ -7,7 +7,6 @@ import { CTAButton } from '@/components/ui/CTAButton'
 import { 
   Users, 
   Search, 
-  Filter, 
   MessageCircle, 
   Calendar,
   Clock,
@@ -187,7 +186,7 @@ export default function MisUsuariosPage() {
             transition={{ duration: 0.8, delay: 0.4 }}
             className="space-y-6"
           >
-            {filteredUsers.map((user, index) => (
+            {filteredUsers.map((user) => (
               <GlassCard key={user.id} className="p-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">

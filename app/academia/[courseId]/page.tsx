@@ -29,7 +29,7 @@ const courseData = {
     description: 'Un curso completo que te guiará a través de los principios fundamentales del mindfulness, incluyendo técnicas de respiración, meditación y aplicación práctica en situaciones cotidianas.',
     imageUrl: '/api/placeholder/800/400',
     duration: 120,
-    lessons: 8,
+    totalLessons: 8,
     rating: 4.8,
     students: 1250,
     isPublished: true,
@@ -253,7 +253,7 @@ export default function CourseDetailPage({ params }: { params: { courseId: strin
                 <GlassCard className="p-6 sticky top-24">
                   <h3 className="text-lg font-semibold mb-4">Lecciones del Curso</h3>
                   <div className="space-y-2">
-                    {course.lessons.map((lesson, index) => (
+                    {course.lessons.map((lesson) => (
                       <div
                         key={lesson.id}
                         className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${

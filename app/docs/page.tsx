@@ -11,8 +11,7 @@ import {
   Briefcase, 
   Download,
   ExternalLink,
-  Search,
-  Filter
+  Search
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useState } from 'react'

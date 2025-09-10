@@ -50,7 +50,7 @@ const featuredApps = [
 ]
 
 export default function Home() {
-  const { role } = useUIStore()
+  const { } = useUIStore()
 
   return (
     <div className="relative min-h-screen overflow-hidden">
