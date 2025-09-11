@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && next build --turbopack",
+    "build": "prisma generate && prisma db push && next build --turbopack",
     "start": "next start",
     "lint": "eslint",
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma db push --force-reset && npm run db:seed"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -25,6 +27,8 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@supabase/supabase-js": "^2.57.4",
+    "@types/pg": "^8.15.5",
     "@types/three": "^0.180.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -32,6 +36,7 @@
     "lucide-react": "^0.543.0",
     "next": "15.5.2",
     "openai": "^5.20.0",
+    "pg": "^8.16.3",
     "prisma": "^6.15.0",
     "react": "19.1.0",
     "react-dom": "19.1.0",
