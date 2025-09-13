@@ -7,7 +7,7 @@ import { CTAButton } from '@/components/ui/CTAButton'
 import { Bot, Send, MessageSquare, Brain, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useUIStore } from '@/lib/store'
+// import { useUIStore } from '@/lib/store' // TODO: Use for personalized responses
 import { marked } from 'marked'
 
 interface Message {
@@ -42,7 +42,7 @@ const renderMarkdown = (content: string): string => {
 }
 
 export default function MotusAIPage() {
-  const { role } = useUIStore()
+  // const { role } = useUIStore() // TODO: Use role for personalized responses
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',

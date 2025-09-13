@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+// import { useEffect } from 'react' // TODO: Add success page effects
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
@@ -20,7 +20,8 @@ interface StepExitoProps {
   onComplete?: () => void
 }
 
-export function StepExito({ onComplete }: StepExitoProps) {
+export function StepExito({ onComplete: _onComplete }: StepExitoProps) {
+  // TODO: Use onComplete callback when needed
   const { role, reset } = useOnboardingStore()
   const router = useRouter()
 

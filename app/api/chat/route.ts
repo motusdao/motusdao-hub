@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Construir conversación
-    const input: any[] = [
+    const input: Array<{ role: "system" | "assistant" | "user"; content: string }> = [
       { role: "system", content: SYSTEM_PROMPT },
     ];
 
@@ -92,7 +92,10 @@ export async function POST(req: NextRequest) {
     // Tomar el último mensaje de usuario para rutear modo
     const lastUser = userMessages.slice().reverse().find(m => m.role === "user");
     const userText = lastUser?.content || "";
-    input.push(...userMessages);
+    // Agregar mensajes de usuario con tipos correctos
+    userMessages.forEach(msg => {
+      input.push({ role: msg.role as "system" | "assistant" | "user", content: msg.content });
+    });
 
     if (wantsSupervisorMode(userText)) {
       const r = await client.chat.completions.create({
@@ -132,7 +135,7 @@ export async function POST(req: NextRequest) {
     const answer = r.choices[0]?.message?.content?.trim() || "";
     return NextResponse.json({ mode: "qa", text: answer });
 
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('OpenAI API Error:', e);
     
     // Handle specific OpenAI errors
@@ -151,6 +154,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ error: e?.message || "OpenAI error" }, { status: 500 });
+    return NextResponse.json({ error: (e as Error)?.message || "OpenAI error" }, { status: 500 });
   }
 }

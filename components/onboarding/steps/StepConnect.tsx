@@ -10,14 +10,13 @@ import {
   Mail, 
   AlertCircle, 
   CheckCircle,
-  Loader,
-  ExternalLink
+  Loader
 } from 'lucide-react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
-import { useOnboardingStore, isValidCeloAddress, getFormattedWalletAddress } from '@/lib/onboarding-store'
-import { getCeloChain, getCeloExplorerUrl } from '@/lib/celo'
+import { useOnboardingStore, isValidCeloAddress } from '@/lib/onboarding-store'
+import { getCeloChain } from '@/lib/celo'
 
 const connectSchema = z.object({
   acceptTerms: z.boolean()
@@ -42,9 +41,7 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
-    watch,
-    setValue
+    formState: { errors, isValid }
   } = useForm<ConnectFormData>({
     resolver: zodResolver(connectSchema),
     defaultValues: {

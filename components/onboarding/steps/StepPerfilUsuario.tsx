@@ -75,8 +75,8 @@ export function StepPerfilUsuario({ onNext, onBack }: StepPerfilUsuarioProps) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isValid },
-    watch
+    formState: { errors, isValid }
+    // watch // TODO: Add form watching functionality when needed
   } = useForm<UsuarioFormData>({
     resolver: zodResolver(usuarioSchema),
     defaultValues: {

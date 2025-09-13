@@ -21,8 +21,8 @@ export function OnboardingWizard({ role }: OnboardingWizardProps) {
     setCurrentStep, 
     setRole, 
     isStepValid, 
-    canProceed,
-    reset 
+    canProceed
+    // reset // TODO: Add reset functionality when needed
   } = useOnboardingStore()
 
   const steps = getStepsForRole(role)

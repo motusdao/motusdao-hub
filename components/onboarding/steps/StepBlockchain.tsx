@@ -21,7 +21,8 @@ interface StepBlockchainProps {
 type BlockchainStatus = 'idle' | 'registering' | 'success' | 'error'
 
 export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
-  const { data, role } = useOnboardingStore()
+  const { role } = useOnboardingStore()
+  // const { data } = useOnboardingStore() // TODO: Use data for blockchain registration
   const [status, setStatus] = useState<BlockchainStatus>('idle')
   const [error, setError] = useState<string>('')
 
