@@ -8,12 +8,37 @@ import { Bot, Send, MessageSquare, Brain, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useUIStore } from '@/lib/store'
+import { marked } from 'marked'
 
 interface Message {
   id: string
   content: string
   isUser: boolean
   timestamp: Date
+}
+
+// Configure marked for safe rendering
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
+// Helper function to render markdown safely
+const renderMarkdown = (content: string): string => {
+  try {
+    const result = marked(content)
+    // Handle both sync and async results
+    if (typeof result === 'string') {
+      return result
+    } else {
+      // For async results, return the content as fallback
+      console.warn('Async markdown rendering not supported in this context')
+      return content
+    }
+  } catch (error) {
+    console.error('Markdown rendering error:', error)
+    return content
+  }
 }
 
 export default function MotusAIPage() {
@@ -52,13 +77,14 @@ export default function MotusAIPage() {
     setError(null)
 
     try {
+      // Convert messages to the new API format
+      const apiMessages = [...messages, userMessage].map(msg => ({
+        role: msg.isUser ? 'user' : 'assistant',
+        content: msg.content
+      }))
+      
       const requestBody = {
-        messages: [...messages, userMessage].map(msg => ({
-          id: msg.id,
-          content: msg.content,
-          isUser: msg.isUser
-        })),
-        userRole: role || 'usuario'
+        messages: apiMessages
       }
       
       console.log('Sending request to API:', requestBody)
@@ -93,9 +119,19 @@ export default function MotusAIPage() {
 
       const data = await response.json()
       
+      // Handle different response formats based on mode
+      let responseContent = ''
+      if (data.mode === 'supervisor') {
+        // Format supervisor response nicely with markdown headers
+        responseContent = `## Apertura de significantes\n\n${data.apertura}\n\n## Reflexión sobre el discurso\n\n${data.reflexion}\n\n## Cierre analítico\n\n${data.cierre}\n\n## Recomendación final\n\n${data.recomendacion}\n\n## Disponibilidad\n\n${data.disponibilidad}`
+      } else {
+        // Regular Q&A response
+        responseContent = data.text || data.message || 'No se pudo generar una respuesta.'
+      }
+      
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: data.message,
+        content: responseContent,
         isUser: false,
         timestamp: new Date()
       }
@@ -189,7 +225,12 @@ export default function MotusAIPage() {
                             : 'glass-card text-foreground'
                         }`}
                       >
-                        <p className="text-sm">{message.content}</p>
+                        <div 
+                          className="text-sm prose prose-sm max-w-none prose-headings:text-mauve-300 prose-strong:text-mauve-300 prose-strong:font-semibold"
+                          dangerouslySetInnerHTML={{
+                            __html: renderMarkdown(message.content)
+                          }}
+                        />
                         <p className="text-xs opacity-70 mt-1">
                           {isClient ? message.timestamp.toLocaleTimeString() : '--:--:--'}
                         </p>
@@ -264,6 +305,15 @@ export default function MotusAIPage() {
                   >
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Técnicas de Relajación
+                  </CTAButton>
+                  <CTAButton
+                    variant="secondary"
+                    size="sm"
+                    className="w-full justify-start"
+                    onClick={() => setInputValue('Entra en modo supervisor: paciente con ansiedad y evitación social')}
+                  >
+                    <Brain className="w-4 h-4 mr-2" />
+                    Modo Supervisor
                   </CTAButton>
                 </div>
               </GlassCard>

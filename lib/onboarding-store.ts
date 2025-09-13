@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { formatCeloAddress } from './celo'
 
 export type UserRole = 'usuario' | 'psm'
 
@@ -8,6 +9,8 @@ export interface OnboardingData {
   email: string
   walletAddress: string
   privyId?: string
+  celoChainId?: number
+  walletType?: 'embedded' | 'external'
   
   // Paso 2: Perfil básico
   nombre: string
@@ -158,6 +161,19 @@ export const useOnboardingStore = create<OnboardingState>()(
     }
   )
 )
+
+// Helper function to validate Celo wallet address
+export const isValidCeloAddress = (address: string): boolean => {
+  if (!address) return false
+  // Basic Ethereum address validation (Celo uses same format)
+  return /^0x[a-fA-F0-9]{40}$/.test(address)
+}
+
+// Helper function to get formatted wallet address for display
+export const getFormattedWalletAddress = (address: string): string => {
+  if (!address) return ''
+  return formatCeloAddress(address, 6)
+}
 
 // Utilidades para obtener pasos por rol
 export const getStepsForRole = (role: UserRole) => {

@@ -15,42 +15,39 @@ export function PrivyProviderWrapper({ children }: PrivyProviderWrapperProps) {
         appearance: {
           theme: 'dark',
           accentColor: '#8B5CF6',
-          logo: 'https://your-logo-url.com/logo.png',
+          logo: '/logo.svg',
           showWalletLoginFirst: false,
-          walletList: ['metamask', 'wallet_connect'],
+          walletList: ['metamask', 'wallet_connect', 'coinbase_wallet'],
         },
         embeddedWallets: { 
-          ethereum: { 
-            createOnLogin: 'users-without-wallets' 
-          } 
+          createOnLogin: 'users-without-wallets' 
         },
-        loginMethods: ['email'],
+        loginMethods: ['email', 'wallet'],
         mfa: {
           noPromptOnMfaRequired: false,
         },
-        // Prevent hydration issues
-        // Additional configuration for better compatibility
+        // Celo Mainnet Configuration
         defaultChain: {
-          id: 1, // Ethereum mainnet
-          name: 'Ethereum',
-          network: 'homestead',
+          id: 42220, // Celo mainnet
+          name: 'Celo',
+          network: 'celo',
           nativeCurrency: {
-            name: 'Ether',
-            symbol: 'ETH',
+            name: 'Celo',
+            symbol: 'CELO',
             decimals: 18,
           },
           rpcUrls: {
             default: {
-              http: ['https://eth.llamarpc.com'],
+              http: ['https://forno.celo.org'],
             },
             public: {
-              http: ['https://eth.llamarpc.com'],
+              http: ['https://forno.celo.org'],
             },
           },
           blockExplorers: {
             default: {
-              name: 'Etherscan',
-              url: 'https://etherscan.io',
+              name: 'Celo Explorer',
+              url: 'https://explorer.celo.org',
             },
           },
         },

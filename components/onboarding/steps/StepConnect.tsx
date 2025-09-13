@@ -16,7 +16,8 @@ import {
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
-import { useOnboardingStore } from '@/lib/onboarding-store'
+import { useOnboardingStore, isValidCeloAddress, getFormattedWalletAddress } from '@/lib/onboarding-store'
+import { getCeloChain, getCeloExplorerUrl } from '@/lib/celo'
 
 const connectSchema = z.object({
   acceptTerms: z.boolean()
@@ -61,26 +62,38 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
     if (authenticated && user && user.email?.address) {
       const userEmail = user.email?.address
       const userWalletAddress = walletAddress
+      const celoChain = getCeloChain()
       
       console.log('StepConnect useEffect Debug:', {
         authenticated,
         userEmail,
         userWalletAddress,
         currentDataEmail: data.email,
-        currentDataWallet: data.walletAddress
+        currentDataWallet: data.walletAddress,
+        celoChainId: celoChain.id
       })
+      
+      // Validate Celo address format
+      const isValidAddress = isValidCeloAddress(userWalletAddress)
       
       // Always update if we have the data and it's different
       if (userEmail !== data.email || userWalletAddress !== data.walletAddress) {
         updateData({ 
           email: userEmail,
           walletAddress: userWalletAddress,
-          privyId: user.id 
+          privyId: user.id,
+          celoChainId: celoChain.id,
+          walletType: wallets[0]?.walletClientType === 'privy' ? 'embedded' : 'external'
         })
-        console.log('Updated store with:', { email: userEmail, walletAddress: userWalletAddress })
+        console.log('Updated store with:', { 
+          email: userEmail, 
+          walletAddress: userWalletAddress,
+          celoChainId: celoChain.id,
+          isValidAddress
+        })
       }
     }
-  }, [authenticated, user, walletAddress, data.email, data.walletAddress, updateData])
+  }, [authenticated, user, walletAddress, data.email, data.walletAddress, updateData, wallets])
 
   const handleConnectWallet = async () => {
     if (!ready) return
@@ -110,7 +123,7 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
     onNext()
   }
 
-  const canProceed = authenticated && walletAddress && isValid && user?.email?.address
+  const canProceed = authenticated && walletAddress && isValid && user?.email?.address && isValidCeloAddress(walletAddress)
 
 
   // Debug logs

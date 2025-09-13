@@ -113,3 +113,20 @@ body {
 .focus-ring {
   @apply focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:ring-offset-2 focus:ring-offset-background;
 }
+
+/* Custom markdown styling for chat messages */
+.prose h2 {
+  @apply text-mauve-300 font-semibold text-base mb-2 mt-4 first:mt-0;
+}
+
+.prose strong {
+  @apply text-mauve-300 font-semibold;
+}
+
+.prose p {
+  @apply mb-3 last:mb-0;
+}
+
+.prose br {
+  @apply mb-2;
+}
