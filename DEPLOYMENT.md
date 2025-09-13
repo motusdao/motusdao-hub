@@ -76,12 +76,20 @@ NEXT_PUBLIC_CELO_CHAIN_ID=42220
 
 ### Step 4: Post-Deployment Configuration
 
-1. **Update Privy App Settings**:
+1. **Deploy Database Schema**:
+   - After the Vercel deployment completes, run the database deployment script:
+   ```bash
+   npm run deploy:db
+   ```
+   - This will push the Prisma schema to your Supabase database
+   - Make sure your DATABASE_URL is correctly set in Vercel environment variables
+
+2. **Update Privy App Settings**:
    - Go back to your Privy dashboard
    - Update the "Allowed Origins" to include your Vercel domain
    - Add: `https://your-app-name.vercel.app`
 
-2. **Test Wallet Connection**:
+3. **Test Wallet Connection**:
    - Visit your deployed app
    - Try connecting with different wallet types
    - Verify that embedded wallets are created for users without wallets
