@@ -40,7 +40,7 @@ export function Topbar() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const roleButtonRef = useRef<HTMLButtonElement>(null)
 
-  const handleRoleChange = (newRole: 'usuario' | 'PSM') => {
+  const handleRoleChange = (newRole: 'usuario' | 'psm') => {
     setRole(newRole)
     setShowRoleDropdown(false)
   }
@@ -147,7 +147,7 @@ export function Topbar() {
                       Usuario
                     </button>
                     <button
-                      onClick={() => handleRoleChange('PSM')}
+                      onClick={() => handleRoleChange('psm')}
                       className={cn(
                         "w-full rounded-xl px-3 py-2 text-sm text-foreground/90 hover:bg-white/10 hover:text-foreground cursor-pointer focus:bg-white/15 focus:outline-none transition-colors",
                         role === 'psm' 
