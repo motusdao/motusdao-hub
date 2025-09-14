@@ -39,7 +39,7 @@ export default function RootLayout({
                 <Sidebar />
                 <div className="flex-1 lg:ml-64 flex flex-col min-h-screen overflow-y-auto overflow-x-hidden">
                   <Topbar />
-                  <main className="flex-1 pt-20 px-4 max-w-full">
+                  <main className="flex-1 pt-16 sm:pt-20 px-4 max-w-full">
                     {children}
                   </main>
                   <Footer />

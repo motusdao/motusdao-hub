@@ -57,7 +57,7 @@ const SUPERVISOR_SCHEMA = {
 
 function wantsSupervisorMode(text: string): boolean {
   const t = text.toLowerCase();
-  return t.includes("modo supervisor") || t.includes("entra en modo supervisor");
+  return t.includes("modo supervisor") || t.includes("entra en modo supervisor") || t.includes("activa modo supervisor");
 }
 
 export async function POST(req: NextRequest) {

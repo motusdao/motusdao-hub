@@ -7,7 +7,7 @@ import { CTAButton } from '@/components/ui/CTAButton'
 import { Bot, Send, MessageSquare, Brain, Sparkles } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-// import { useUIStore } from '@/lib/store' // TODO: Use for personalized responses
+import { useUIStore } from '@/lib/store'
 import { marked } from 'marked'
 
 interface Message {
@@ -42,7 +42,7 @@ const renderMarkdown = (content: string): string => {
 }
 
 export default function MotusAIPage() {
-  // const { role } = useUIStore() // TODO: Use role for personalized responses
+  const { role } = useUIStore()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -306,15 +306,17 @@ export default function MotusAIPage() {
                     <MessageSquare className="w-4 h-4 mr-2" />
                     Técnicas de Relajación
                   </CTAButton>
-                  <CTAButton
-                    variant="secondary"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => setInputValue('Entra en modo supervisor: paciente con ansiedad y evitación social')}
-                  >
-                    <Brain className="w-4 h-4 mr-2" />
-                    Modo Supervisor
-                  </CTAButton>
+                  {role === 'psm' && (
+                    <CTAButton
+                      variant="secondary"
+                      size="sm"
+                      className="w-full justify-start"
+                      onClick={() => setInputValue('Activa Modo Supervisor')}
+                    >
+                      <Brain className="w-4 h-4 mr-2" />
+                      Modo Supervisor
+                    </CTAButton>
+                  )}
                 </div>
               </GlassCard>
 

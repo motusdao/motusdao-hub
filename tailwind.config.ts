@@ -67,6 +67,14 @@ const config: Config = {
           900: "#581c87",
           950: "#3b0764",
         },
+        // Matrix theme colors - neon green
+        matrix: {
+          bg: "#000000",
+          text: "#39ff14",
+          accent: "#00ff41",
+          border: "rgba(0,255,65,0.6)",
+          placeholder: "#32ff32",
+        },
         iris: {
           50: "#f0f4ff",
           100: "#e0e7ff",
@@ -98,6 +106,8 @@ const config: Config = {
         sans: ["Inter", "sans-serif"],
         heading: ["Jura", "sans-serif"],
         accent: ["Playfair Display", "serif"],
+        matrix: ["Share Tech Mono", "Courier New", "monospace"],
+        matrixHeading: ["Orbitron", "Share Tech Mono", "monospace"],
       },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
@@ -115,6 +125,9 @@ const config: Config = {
         "gradient-iridescent": "linear-gradient(135deg, #7c3aed 0%, #a855f7 25%, #6366f1 50%, #ec4899 75%, #7c3aed 100%)",
         "gradient-mauve": "linear-gradient(135deg, #7c3aed 0%, #a855f7 100%)",
         "gradient-iris": "linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)",
+        // Matrix theme gradients
+        "gradient-matrix": "linear-gradient(135deg, #39ff14 0%, #00ff41 100%)",
+        "gradient-matrix-neon": "linear-gradient(135deg, #39ff14 0%, #32ff32 50%, #00ff41 100%)",
       },
       backdropBlur: {
         xs: "2px",
@@ -133,6 +146,11 @@ const config: Config = {
         "soft": "0 4px 20px 0 rgba(0, 0, 0, 0.1)",
         "glow": "0 0 20px rgba(124, 58, 237, 0.3)",
         "glow-matrix": "0 0 20px rgba(16, 185, 129, 0.3)",
+        // Matrix theme shadows
+        "matrix": "0 8px 24px rgba(0,0,0,0.5)",
+        "matrix-glow": "0 0 20px rgba(0, 255, 65, 0.3)",
+        "matrix-glow-strong": "0 0 30px rgba(57, 255, 20, 0.4), 0 0 60px rgba(0, 255, 65, 0.2)",
+        "matrix-glow-button": "0 0 20px rgba(57,255,20,0.3), 0 0 40px rgba(0,255,65,0.2)",
       },
       animation: {
         "fade-in": "fadeIn 0.5s ease-in-out",

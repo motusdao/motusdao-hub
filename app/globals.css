@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Jura:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Jura:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&family=Share+Tech+Mono:wght@400&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -68,26 +68,38 @@
 }
 
 [data-theme="matrix"] {
-  /* Matrix theme */
+  /* Matrix theme - Enhanced with neon green colors */
+  --matrix-bg: #000000;
+  --matrix-text: #39ff14;   /* neon green body text */
+  --matrix-accent: #00ff41; /* bright neon green for titles/links */
+  --matrix-border: rgba(0,255,65,0.6);
+  --matrix-placeholder: #32ff32;
+  
   --background: 0 0% 0%; /* #000000 */
-  --foreground: 142 76% 36%; /* #10b981 */
+  --foreground: 120 100% 50%; /* #39ff14 - neon green */
   --card: 0 0% 0%;
-  --card-foreground: 142 76% 36%;
+  --card-foreground: 120 100% 50%;
   --popover: 0 0% 0%;
-  --popover-foreground: 142 76% 36%;
-  --primary: 142 76% 36%;
+  --popover-foreground: 120 100% 50%;
+  --primary: 120 100% 50%; /* #00ff41 - bright neon green */
   --primary-foreground: 0 0% 0%;
   --secondary: 0 0% 5%;
-  --secondary-foreground: 142 76% 36%;
+  --secondary-foreground: 120 100% 50%;
   --muted: 0 0% 5%;
-  --muted-foreground: 142 76% 20%;
+  --muted-foreground: 120 100% 30%;
   --accent: 0 0% 5%;
-  --accent-foreground: 142 76% 36%;
+  --accent-foreground: 120 100% 50%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 0 0% 98%;
-  --border: 142 76% 20%;
+  --border: 120 100% 50%; /* neon green border */
   --input: 0 0% 5%;
-  --ring: 142 76% 36%;
+  --ring: 120 100% 50%;
+  
+  color: var(--matrix-text);
+  background-color: var(--matrix-bg);
+  
+  /* Matrix typewriter font family */
+  font-family: 'Share Tech Mono', 'Courier New', 'Monaco', monospace !important;
 }
 
 * {
@@ -358,6 +370,227 @@ body::after {
 
 [data-theme="matrix"] ::-webkit-scrollbar-thumb:hover {
   background: rgba(16, 185, 129, 0.5);
+}
+
+/* MATRIX THEME OVERRIDES */
+/* Bordes verdes por defecto en Matrix */
+[data-theme="matrix"] .border,
+[data-theme="matrix"] [class*="border-"] {
+  border-color: var(--matrix-border) !important;
+}
+
+/* Esquinas rectas en Matrix: neutraliza rounded-* comunes */
+@layer utilities {
+  [data-theme="matrix"] .rounded,
+  [data-theme="matrix"] .rounded-sm,
+  [data-theme="matrix"] .rounded-md,
+  [data-theme="matrix"] .rounded-lg,
+  [data-theme="matrix"] .rounded-xl,
+  [data-theme="matrix"] .rounded-2xl,
+  [data-theme="matrix"] .rounded-3xl,
+  [data-theme="matrix"] .rounded-full {
+    border-radius: 0 !important;
+  }
+}
+
+/* Tipografía/accesibilidad Matrix */
+[data-theme="matrix"] a,
+[data-theme="matrix"] .text-accent,
+[data-theme="matrix"] h1,
+[data-theme="matrix"] h2,
+[data-theme="matrix"] h3,
+[data-theme="matrix"] h4,
+[data-theme="matrix"] h5,
+[data-theme="matrix"] h6 {
+  color: var(--matrix-accent);
+  font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Matrix theme body text styling */
+[data-theme="matrix"] body,
+[data-theme="matrix"] p,
+[data-theme="matrix"] div,
+[data-theme="matrix"] span {
+  font-family: 'Share Tech Mono', 'Courier New', monospace !important;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+/* Matrix theme button text */
+[data-theme="matrix"] button {
+  font-family: 'Share Tech Mono', 'Courier New', monospace !important;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+/* Matrix theme input styling */
+[data-theme="matrix"] input,
+[data-theme="matrix"] textarea,
+[data-theme="matrix"] select {
+  font-family: 'Share Tech Mono', 'Courier New', monospace !important;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+}
+
+[data-theme="matrix"] :focus-visible {
+  outline: 2px solid var(--matrix-accent);
+  outline-offset: 2px;
+}
+
+/* Placeholders e iconos Matrix */
+[data-theme="matrix"] ::placeholder,
+[data-theme="matrix"] input::placeholder,
+[data-theme="matrix"] textarea::placeholder {
+  color: var(--matrix-placeholder);
+}
+
+/* Botones - variantes Matrix */
+@layer components {
+  .btn-matrix-primary {
+    @apply bg-gradient-to-r from-[#39ff14] to-[#00ff41] text-black transition-all duration-300 border-0;
+    border-radius: 0 !important;
+    box-shadow: 0 0 20px rgba(57,255,20,0.3), 0 0 40px rgba(0,255,65,0.2);
+  }
+  .btn-matrix-primary:hover { 
+    filter: brightness(1.1); 
+    transform: translateY(-1px) scale(1.02);
+  }
+  .btn-matrix-primary:active { 
+    transform: translateY(1px) scale(0.98); 
+  }
+  .btn-matrix-primary:focus-visible {
+    outline: 2px solid var(--matrix-accent);
+    outline-offset: 2px;
+  }
+
+  .btn-matrix-secondary {
+    @apply bg-black border text-[#00ff41] transition-all duration-300;
+    border-color: var(--matrix-border) !important;
+    border-radius: 0 !important;
+    box-shadow: 0 0 10px rgba(0,255,65,0.2);
+  }
+  .btn-matrix-secondary:hover { 
+    background-color: rgba(0,255,65,0.08); 
+    transform: translateY(-1px) scale(1.02);
+    box-shadow: 0 0 20px rgba(0,255,65,0.4), 0 0 40px rgba(0,255,65,0.2);
+  }
+  .btn-matrix-secondary:active {
+    transform: translateY(1px) scale(0.98);
+  }
+  .btn-matrix-secondary:focus-visible {
+    outline: 2px solid var(--matrix-accent);
+    outline-offset: 2px;
+    box-shadow: 0 0 20px rgba(0,255,65,0.6);
+  }
+}
+
+/* Matrix theme gradient overrides */
+[data-theme="matrix"] body::before {
+  background: 
+    radial-gradient(60% 60% at 20% 20%, rgba(0,255,65,.15), transparent 60%),
+    radial-gradient(60% 60% at 80% 30%, rgba(57,255,20,.12), transparent 60%),
+    radial-gradient(70% 70% at 50% 80%, rgba(50,255,50,.18), transparent 60%),
+    linear-gradient(45deg, rgba(0,255,65,.08) 0%, rgba(57,255,20,.08) 50%, rgba(50,255,50,.10) 100%);
+}
+
+[data-theme="matrix"] body::after {
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(0,255,65, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(57,255,20, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(50,255,50, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0,255,65, 0.08) 0%, transparent 50%);
+}
+
+/* Override glassmorphism for Matrix theme */
+[data-theme="matrix"] .glass,
+[data-theme="matrix"] .glass-strong,
+[data-theme="matrix"] .glass-navbar,
+[data-theme="matrix"] .glass-sidebar {
+  background: rgba(0, 0, 0, 0.8) !important;
+  border: 1px solid var(--matrix-border) !important;
+  border-radius: 0 !important;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5), 0 0 20px rgba(0,255,65,0.1);
+}
+
+/* Override neumorphism for Matrix theme */
+[data-theme="matrix"] .neo,
+[data-theme="matrix"] .neo-inset {
+  background: var(--matrix-bg) !important;
+  border: 1px solid var(--matrix-border) !important;
+  border-radius: 0 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+}
+
+/* Matrix theme input styling */
+[data-theme="matrix"] input,
+[data-theme="matrix"] textarea,
+[data-theme="matrix"] select {
+  background: var(--matrix-bg) !important;
+  border: 1px solid var(--matrix-border) !important;
+  border-radius: 0 !important;
+  color: var(--matrix-text) !important;
+}
+
+[data-theme="matrix"] input:focus,
+[data-theme="matrix"] textarea:focus,
+[data-theme="matrix"] select:focus {
+  outline: 2px solid var(--matrix-accent);
+  outline-offset: 2px;
+  border-color: var(--matrix-accent) !important;
+}
+
+/* Matrix theme card styling */
+[data-theme="matrix"] .card,
+[data-theme="matrix"] [class*="card"] {
+  background: var(--matrix-bg) !important;
+  border: 1px solid var(--matrix-border) !important;
+  border-radius: 0 !important;
+  color: var(--matrix-text) !important;
+}
+
+/* Matrix theme gradient text */
+[data-theme="matrix"] .gradient-text {
+  background: linear-gradient(135deg, #39ff14 0%, #00ff41 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+[data-theme="matrix"] .gradient-text-secondary {
+  background: linear-gradient(135deg, #39ff14 0%, #32ff32 50%, #00ff41 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Matrix theme scrollbar */
+[data-theme="matrix"] ::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 65, 0.4);
+  border-radius: 0;
+}
+
+[data-theme="matrix"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(57, 255, 20, 0.6);
+}
+
+/* Matrix theme typography utilities */
+[data-theme="matrix"] .modern-typography-large {
+  font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+[data-theme="matrix"] .modern-typography-medium {
+  font-family: 'Orbitron', 'Share Tech Mono', monospace !important;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* Legacy glassmorphism utilities (for backward compatibility) */
