@@ -157,7 +157,7 @@ export function EmailLoginModal({ isOpen, onClose, onLoggedIn }: EmailLoginModal
             {/* Header */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-gradient-to-r from-mauve-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-gradient-to-r from-mauve-500 to-purple-600 rounded-xl flex items-center justify-center">
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -171,7 +171,7 @@ export function EmailLoginModal({ isOpen, onClose, onLoggedIn }: EmailLoginModal
               </div>
               <button
                 onClick={handleClose}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="p-2 hover:bg-white/15 rounded-xl transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -197,7 +197,7 @@ export function EmailLoginModal({ isOpen, onClose, onLoggedIn }: EmailLoginModal
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="tu@correo.com"
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                      className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                       disabled={loading}
                     />
                   </div>
@@ -224,7 +224,7 @@ export function EmailLoginModal({ isOpen, onClose, onLoggedIn }: EmailLoginModal
                       value={code}
                       onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       placeholder="123456"
-                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all text-center text-2xl tracking-widest"
+                      className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition text-center text-2xl tracking-widest"
                       disabled={loading}
                       maxLength={6}
                     />

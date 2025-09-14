@@ -121,14 +121,14 @@ export function StepRevision({ onNext, onBack }: StepRevisionProps) {
               <span>Conexión</span>
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <Mail className="w-4 h-4 text-blue-400" />
                   <span className="text-sm font-medium">Correo electrónico</span>
                 </div>
                 <p className="text-white">{data.email || 'No especificado'}</p>
               </div>
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <Wallet className="w-4 h-4 text-purple-400" />
                   <span className="text-sm font-medium">Wallet</span>
@@ -145,28 +145,28 @@ export function StepRevision({ onNext, onBack }: StepRevisionProps) {
               <span>Información Personal</span>
             </h3>
             <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <User className="w-4 h-4 text-blue-400" />
                   <span className="text-sm font-medium">Nombre completo</span>
                 </div>
                 <p className="text-white">{data.nombre} {data.apellido}</p>
               </div>
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <Phone className="w-4 h-4 text-green-400" />
                   <span className="text-sm font-medium">Teléfono</span>
                 </div>
                 <p className="text-white">{data.telefono || 'No especificado'}</p>
               </div>
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <Calendar className="w-4 h-4 text-orange-400" />
                   <span className="text-sm font-medium">Fecha de nacimiento</span>
                 </div>
                 <p className="text-white">{formatDate(data.fechaNacimiento || '')}</p>
               </div>
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-2 mb-2">
                   <MapPin className="w-4 h-4 text-red-400" />
                   <span className="text-sm font-medium">Ubicación</span>
@@ -184,21 +184,21 @@ export function StepRevision({ onNext, onBack }: StepRevisionProps) {
                 <span>Perfil Terapéutico</span>
               </h3>
               <div className="space-y-4">
-                <div className="p-4 glass-card rounded-lg">
+                <div className="p-4 glass rounded-xl">
                   <div className="flex items-center space-x-2 mb-2">
                     <Heart className="w-4 h-4 text-pink-400" />
                     <span className="text-sm font-medium">Tipo de atención</span>
                   </div>
                   <p className="text-white capitalize">{data.tipoAtencion || 'No especificado'}</p>
                 </div>
-                <div className="p-4 glass-card rounded-lg">
+                <div className="p-4 glass rounded-xl">
                   <div className="flex items-center space-x-2 mb-2">
                     <Edit className="w-4 h-4 text-blue-400" />
                     <span className="text-sm font-medium">Motivo de consulta</span>
                   </div>
                   <p className="text-white">{data.problematica || 'No especificado'}</p>
                 </div>
-                <div className="p-4 glass-card rounded-lg">
+                <div className="p-4 glass rounded-xl">
                   <div className="flex items-center space-x-2 mb-2">
                     <User className="w-4 h-4 text-purple-400" />
                     <span className="text-sm font-medium">Preferencia de asignación</span>
@@ -216,14 +216,14 @@ export function StepRevision({ onNext, onBack }: StepRevisionProps) {
                 <span>Información Profesional</span>
               </h3>
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 glass-card rounded-lg">
+                <div className="p-4 glass rounded-xl">
                   <div className="flex items-center space-x-2 mb-2">
                     <Award className="w-4 h-4 text-yellow-400" />
                     <span className="text-sm font-medium">Cédula profesional</span>
                   </div>
                   <p className="text-white">{data.cedulaProfesional || 'No especificada'}</p>
                 </div>
-                <div className="p-4 glass-card rounded-lg">
+                <div className="p-4 glass rounded-xl">
                   <div className="flex items-center space-x-2 mb-2">
                     <User className="w-4 h-4 text-blue-400" />
                     <span className="text-sm font-medium">Años de experiencia</span>

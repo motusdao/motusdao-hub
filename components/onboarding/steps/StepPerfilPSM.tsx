@@ -162,7 +162,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                 type="text"
                 id="nombre"
                 placeholder="Tu nombre"
-                className="w-full px-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
               />
               {errors.nombre && (
                 <p className="text-red-400 text-sm flex items-center space-x-1">
@@ -181,7 +181,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                 type="text"
                 id="apellido"
                 placeholder="Tus apellidos"
-                className="w-full px-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
               />
               {errors.apellido && (
                 <p className="text-red-400 text-sm flex items-center space-x-1">
@@ -204,7 +204,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   type="tel"
                   id="telefono"
                   placeholder="+52 55 1234 5678"
-                  className="w-full pl-10 pr-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                 />
               </div>
               {errors.telefono && (
@@ -225,7 +225,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   {...register('fechaNacimiento')}
                   type="date"
                   id="fechaNacimiento"
-                  className="w-full pl-10 pr-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                 />
               </div>
               {errors.fechaNacimiento && (
@@ -249,7 +249,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   type="text"
                   id="ciudad"
                   placeholder="Tu ciudad"
-                  className="w-full pl-10 pr-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                  className="w-full pl-10 pr-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                 />
               </div>
               {errors.ciudad && (
@@ -268,7 +268,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                 <select
                   {...register('pais')}
                   id="pais"
-                  className="w-full px-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all appearance-none"
+                  className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition appearance-none"
                 >
                   <option value="">Selecciona tu país</option>
                   {paises.map(pais => (
@@ -305,7 +305,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   type="text"
                   id="cedulaProfesional"
                   placeholder="Ej: 12345678"
-                  className="w-full px-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                 />
                 {errors.cedulaProfesional && (
                   <p className="text-red-400 text-sm flex items-center space-x-1">
@@ -324,7 +324,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   type="text"
                   id="formacionAcademica"
                   placeholder="Ej: Licenciatura en Psicología, Universidad Nacional"
-                  className="w-full px-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                 />
                 {errors.formacionAcademica && (
                   <p className="text-red-400 text-sm flex items-center space-x-1">
@@ -344,7 +344,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   id="experienciaAnios"
                   min="0"
                   placeholder="0"
-                  className="w-full px-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                 />
                 {errors.experienciaAnios && (
                   <p className="text-red-400 text-sm flex items-center space-x-1">
@@ -363,7 +363,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   id="biografia"
                   rows={3}
                   placeholder="Cuéntanos brevemente sobre tu enfoque terapéutico y experiencia..."
-                  className="w-full px-4 py-3 glass-card border border-white/10 rounded-lg focus:ring-2 focus:ring-mauve-500 focus:border-transparent transition-all resize-none"
+                  className="w-full px-4 py-3 glass border border-white/15 rounded-xl focus-ring smooth-transition resize-none"
                 />
               </div>
 
@@ -375,7 +375,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   {especialidades.map(especialidad => (
                     <label
                       key={especialidad.value}
-                      className="flex items-center space-x-2 p-2 glass-card rounded-lg cursor-pointer hover:bg-white/5 transition-colors"
+                      className="flex items-center space-x-2 p-2 glass rounded-xl cursor-pointer hover:bg-white/15 transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -400,7 +400,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                   Preferencias de plataforma
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="flex items-center space-x-2 p-3 glass-card rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                  <label className="flex items-center space-x-2 p-3 glass rounded-xl cursor-pointer hover:bg-white/15 transition-colors">
                     <input
                       {...register('participaSupervision')}
                       type="checkbox"
@@ -412,7 +412,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                     </div>
                   </label>
 
-                  <label className="flex items-center space-x-2 p-3 glass-card rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                  <label className="flex items-center space-x-2 p-3 glass rounded-xl cursor-pointer hover:bg-white/15 transition-colors">
                     <input
                       {...register('participaCursos')}
                       type="checkbox"
@@ -424,7 +424,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                     </div>
                   </label>
 
-                  <label className="flex items-center space-x-2 p-3 glass-card rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                  <label className="flex items-center space-x-2 p-3 glass rounded-xl cursor-pointer hover:bg-white/15 transition-colors">
                     <input
                       {...register('participaInvestigacion')}
                       type="checkbox"
@@ -436,7 +436,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
                     </div>
                   </label>
 
-                  <label className="flex items-center space-x-2 p-3 glass-card rounded-lg cursor-pointer hover:bg-white/5 transition-colors">
+                  <label className="flex items-center space-x-2 p-3 glass rounded-xl cursor-pointer hover:bg-white/15 transition-colors">
                     <input
                       {...register('participaComunidad')}
                       type="checkbox"
@@ -471,7 +471,7 @@ export function StepPerfilPSM({ onNext, onBack }: StepPerfilPSMProps) {
             </CTAButton>
             
             {/* Debug info */}
-            <div className="mt-4 p-3 bg-gray-800/50 rounded-lg text-xs">
+            <div className="mt-4 p-3 bg-gray-800/50 rounded-xl text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p><strong>Formulario:</strong></p>

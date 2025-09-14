@@ -69,13 +69,13 @@ export function Topbar() {
   const userAddress = primaryWallet?.address || user?.wallet?.address
 
   return (
-    <header className="sticky top-0 z-40 w-full glass-card-strong border-b border-white/10">
+    <header className="fixed top-4 left-0 right-0 z-40 mx-4 lg:ml-64 lg:mr-4 glass-navbar max-w-full">
       <div className="flex h-16 items-center justify-between px-6">
         {/* Left side */}
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="lg:hidden p-2 hover:bg-white/10 rounded-xl transition-colors"
           >
             <Menu className="w-5 h-5" />
           </button>
@@ -84,19 +84,19 @@ export function Topbar() {
           <div className="relative">
             <button
               onClick={() => setShowRoleDropdown(!showRoleDropdown)}
-              className="flex items-center space-x-2 px-3 py-2 glass-card hover:bg-white/10 rounded-lg transition-colors"
+              className="flex items-center space-x-2 px-3 py-2 glass hover:bg-white/15 rounded-xl transition-colors"
             >
               <span className="text-sm font-medium capitalize">{role}</span>
               <ChevronDown className="w-4 h-4" />
             </button>
 
             {showRoleDropdown && (
-              <div className="absolute top-full left-0 mt-2 w-40 glass-card-strong border border-white/10 rounded-lg shadow-lg z-50">
+              <div className="absolute top-full left-0 mt-2 w-40 glass-strong border border-white/10 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50">
                 <div className="p-2 space-y-1">
                   <button
                     onClick={() => handleRoleChange('usuario')}
                     className={cn(
-                      "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
+                      "w-full text-left px-3 py-2 rounded-xl text-sm transition-colors",
                       role === 'usuario' 
                         ? "bg-mauve-500/20 text-mauve-400" 
                         : "hover:bg-white/10"
@@ -107,7 +107,7 @@ export function Topbar() {
                   <button
                     onClick={() => handleRoleChange('psm')}
                     className={cn(
-                      "w-full text-left px-3 py-2 rounded-lg text-sm transition-colors",
+                      "w-full text-left px-3 py-2 rounded-xl text-sm transition-colors",
                       role === 'psm' 
                         ? "bg-mauve-500/20 text-mauve-400" 
                         : "hover:bg-white/10"
@@ -126,13 +126,15 @@ export function Topbar() {
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/15 rounded-xl transition-colors focus-ring"
             aria-label="Toggle theme"
           >
             {theme === 'light' ? (
               <Moon className="w-5 h-5" />
-            ) : (
+            ) : theme === 'dark' ? (
               <Sun className="w-5 h-5" />
+            ) : (
+              <div className="w-5 h-5 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full" />
             )}
           </button>
 
@@ -141,7 +143,7 @@ export function Topbar() {
             <div className="relative">
               <button
                 onClick={() => setShowUserDropdown(!showUserDropdown)}
-                className="flex items-center space-x-2 px-3 py-2 glass-card hover:bg-white/10 rounded-lg transition-colors"
+                className="flex items-center space-x-2 px-3 py-2 glass hover:bg-white/15 rounded-xl transition-colors"
               >
                 <div className="w-8 h-8 bg-gradient-mauve rounded-full flex items-center justify-center">
                   <User className="w-4 h-4 text-white" />
@@ -156,7 +158,7 @@ export function Topbar() {
               </button>
 
               {showUserDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-64 glass-card-strong border border-white/10 rounded-lg shadow-lg z-50">
+                <div className="absolute top-full right-0 mt-2 w-64 glass-strong border border-white/10 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50">
                   <div className="p-2 space-y-1">
                     <div className="px-3 py-2 text-sm text-muted-foreground border-b border-white/10">
                       <div className="flex items-center justify-between">
@@ -184,7 +186,7 @@ export function Topbar() {
                     </div>
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-white/10 rounded-lg transition-colors text-red-400"
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-white/15 rounded-xl transition-colors text-red-400"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Desconectar</span>
@@ -197,7 +199,7 @@ export function Topbar() {
             <button
               onClick={handleLogin}
               disabled={!ready}
-              className="flex items-center space-x-2 px-4 py-2 bg-gradient-mauve hover:bg-gradient-to-r hover:from-mauve-600 hover:to-mauve-800 text-white rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="btn-primary flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Wallet className="w-4 h-4" />
               <span className="text-sm font-medium">

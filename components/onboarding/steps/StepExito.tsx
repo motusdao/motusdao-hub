@@ -138,10 +138,10 @@ export function StepExito({ onComplete: _onComplete }: StepExitoProps) {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6 + index * 0.1 }}
-              className="p-4 glass-card rounded-lg"
+              className="p-4 glass rounded-xl"
             >
               <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-mauve-500/20 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 bg-mauve-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
                   <feature.icon className="w-5 h-5 text-mauve-400" />
                 </div>
                 <div>
@@ -171,7 +171,7 @@ export function StepExito({ onComplete: _onComplete }: StepExitoProps) {
           
           <button
             onClick={() => handleRedirect(content.secondaryAction.path)}
-            className="flex items-center justify-center space-x-2 px-6 py-3 glass-card border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
+            className="flex items-center justify-center space-x-2 px-6 py-3 glass border border-white/10 rounded-xl hover:bg-white/15 transition-colors"
           >
             <content.secondaryAction.icon className="w-4 h-4" />
             <span>{content.secondaryAction.label}</span>
@@ -183,7 +183,7 @@ export function StepExito({ onComplete: _onComplete }: StepExitoProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 1 }}
-          className="mt-8 p-4 glass-card rounded-lg bg-mauve-500/10 border border-mauve-500/20"
+          className="mt-8 p-4 glass rounded-xl bg-mauve-500/10 border border-mauve-500/20"
         >
           <div className="text-center">
             <p className="text-sm text-muted-foreground mb-2">

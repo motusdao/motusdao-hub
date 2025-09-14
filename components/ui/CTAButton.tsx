@@ -17,9 +17,9 @@ export function CTAButton({
   ...props
 }: CTAButtonProps) {
   const variantClasses = {
-    primary: "bg-gradient-mauve hover:bg-gradient-to-r hover:from-mauve-600 hover:to-mauve-800 text-white border-0",
-    secondary: "glass-card hover:bg-white/10 text-foreground border-white/20",
-    ghost: "bg-transparent hover:bg-white/5 text-foreground border-white/10"
+    primary: "btn-primary",
+    secondary: "btn-secondary",
+    ghost: "bg-transparent hover:bg-white/5 text-foreground border-white/10 smooth-transition"
   }
 
   const sizeClasses = {
@@ -31,8 +31,7 @@ export function CTAButton({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center rounded-lg font-medium transition-all duration-300 focus-ring",
-        "border backdrop-blur-sm",
+        "inline-flex items-center justify-center font-medium focus-ring",
         variantClasses[variant],
         sizeClasses[size],
         glow && "shadow-glow hover:shadow-glow",

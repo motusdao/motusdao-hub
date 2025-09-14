@@ -73,7 +73,7 @@ export default function Home() {
       
       {/* Hero Section */}
       <Section className="relative z-10">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-6 max-w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -122,7 +122,7 @@ export default function Home() {
 
       {/* Featured Apps Section */}
       <Section className="relative z-10">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-6 max-w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -150,8 +150,9 @@ export default function Home() {
                   <Link href={app.href}>
                     <GlassCard hover className="h-full p-6 group cursor-pointer">
                       <div className="text-center">
-                        <div className={`w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-r ${app.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300`}>
-                          <Icon className="w-8 h-8 text-white" />
+                        <div className={`w-16 h-16 mx-auto mb-4 rounded-xl bg-gradient-to-r ${app.color} flex items-center justify-center group-hover:scale-110 transition-transform duration-300 relative overflow-hidden`}>
+                          <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
+                          <Icon className="w-8 h-8 text-white relative z-10" />
                         </div>
                         
                         <h3 className="text-xl font-semibold mb-2 group-hover:text-mauve-400 transition-colors">
@@ -173,7 +174,7 @@ export default function Home() {
 
       {/* CTA Section */}
       <Section className="relative z-10">
-        <div className="container mx-auto px-6">
+        <div className="container mx-auto px-6 max-w-full">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}

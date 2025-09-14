@@ -16,6 +16,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import Image from 'next/image'
 // import { useState } from 'react' // TODO: Add mobile menu functionality
 
 const iconMap = {
@@ -49,20 +50,26 @@ export function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-0 z-50 h-full w-64 glass-card-strong border-r border-white/10 transition-transform duration-300",
+          "fixed left-0 top-0 z-50 h-screen w-64 glass-sidebar border-r border-white/10 transition-transform duration-300",
           sidebarOpen ? "translate-x-0" : "-translate-x-full",
-          "lg:translate-x-0 lg:static lg:z-auto"
+          "lg:translate-x-0 lg:z-40"
         )}
       >
-        <div className="flex h-full flex-col">
+        <div className="flex h-screen flex-col">
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b border-white/10">
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-mauve rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">M</span>
+              <div className="w-8 h-8 relative">
+                <Image
+                  src="/logo.svg"
+                  alt="MotusDAO Logo"
+                  width={32}
+                  height={32}
+                  className="w-full h-full object-contain"
+                />
               </div>
               <div>
-                <h1 className="font-heading font-bold text-lg gradient-text-mauve">
+                <h1 className="font-heading font-bold text-lg gradient-text">
                   MotusDAO
                 </h1>
                 <p className="text-xs text-muted-foreground">Mental Health Hub</p>
@@ -70,7 +77,7 @@ export function Sidebar() {
             </div>
             <button
               onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="lg:hidden p-2 hover:bg-white/15 rounded-xl transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
@@ -87,7 +94,7 @@ export function Sidebar() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 group",
+                    "flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group",
                     isActive
                       ? "bg-mauve-500/20 text-mauve-400 border border-mauve-500/30"
                       : "text-muted-foreground hover:text-foreground hover:bg-white/5"

@@ -188,7 +188,7 @@ export default function MotusAIPage() {
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Chat Interface */}
             <div className="lg:col-span-3">
-              <GlassCard className="h-[600px] flex flex-col">
+              <GlassCard className="h-96 flex flex-col">
                 {/* Chat Header */}
                 <div className="p-4 border-b border-white/10 flex items-center space-x-3">
                   <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
@@ -204,7 +204,7 @@ export default function MotusAIPage() {
 
                 {/* Error Message */}
                 {error && (
-                  <div className="p-3 mx-4 mt-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+                  <div className="p-3 mx-4 mt-2 bg-red-500/10 border border-red-500/20 rounded-xl">
                     <p className="text-sm text-red-400">{error}</p>
                   </div>
                 )}
@@ -219,10 +219,10 @@ export default function MotusAIPage() {
                       className={`flex ${message.isUser ? 'justify-end' : 'justify-start'}`}
                     >
                       <div
-                        className={`max-w-[80%] p-3 rounded-lg ${
+                        className={`max-w-[80%] p-3 rounded-xl ${
                           message.isUser
                             ? 'bg-gradient-mauve text-white'
-                            : 'glass-card text-foreground'
+                            : 'glass text-foreground'
                         }`}
                       >
                         <div 
@@ -244,7 +244,7 @@ export default function MotusAIPage() {
                       animate={{ opacity: 1 }}
                       className="flex justify-start"
                     >
-                      <div className="glass-card p-3 rounded-lg">
+                      <div className="glass p-3 rounded-xl">
                         <div className="flex space-x-1">
                           <div className="w-2 h-2 bg-mauve-500 rounded-full animate-bounce"></div>
                           <div className="w-2 h-2 bg-mauve-500 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -264,7 +264,7 @@ export default function MotusAIPage() {
                       onChange={(e) => setInputValue(e.target.value)}
                       onKeyPress={handleKeyPress}
                       placeholder="Escribe tu mensaje..."
-                      className="flex-1 px-4 py-2 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent"
+                      className="flex-1 px-4 py-2 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                       disabled={isLoading}
                     />
                     <CTAButton
@@ -322,11 +322,11 @@ export default function MotusAIPage() {
               <GlassCard className="p-6">
                 <h3 className="font-semibold mb-4">Historial de Chats</h3>
                 <div className="space-y-2">
-                  <div className="p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                  <div className="p-2 hover:bg-white/15 rounded-xl cursor-pointer">
                     <p className="text-sm font-medium">Conversación de hoy</p>
                     <p className="text-xs text-muted-foreground">Hace 2 horas</p>
                   </div>
-                  <div className="p-2 hover:bg-white/5 rounded-lg cursor-pointer">
+                  <div className="p-2 hover:bg-white/15 rounded-xl cursor-pointer">
                     <p className="text-sm font-medium">Técnicas de respiración</p>
                     <p className="text-xs text-muted-foreground">Ayer</p>
                   </div>

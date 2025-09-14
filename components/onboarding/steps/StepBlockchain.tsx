@@ -68,7 +68,7 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
             </p>
             
             <div className="space-y-4 mb-8">
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-mauve-500/20 rounded-full flex items-center justify-center">
                     <span className="text-mauve-400 text-sm font-bold">1</span>
@@ -82,7 +82,7 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
                 </div>
               </div>
               
-              <div className="p-4 glass-card rounded-lg">
+              <div className="p-4 glass rounded-xl">
                 <div className="flex items-center space-x-3">
                   <div className="w-8 h-8 bg-mauve-500/20 rounded-full flex items-center justify-center">
                     <span className="text-mauve-400 text-sm font-bold">2</span>
@@ -146,7 +146,7 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
               Tu identidad descentralizada ha sido creada exitosamente en la blockchain.
             </p>
             
-            <div className="p-4 glass-card rounded-lg mb-6">
+            <div className="p-4 glass rounded-xl mb-6">
               <div className="flex items-center space-x-3">
                 <CheckCircle className="w-6 h-6 text-green-400" />
                 <div className="text-left">
@@ -176,7 +176,7 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
             </p>
             
             {error && (
-              <div className="p-4 glass-card rounded-lg mb-6 bg-red-500/10 border border-red-500/20">
+              <div className="p-4 glass rounded-xl mb-6 bg-red-500/10 border border-red-500/20">
                 <p className="text-red-400 text-sm">{error}</p>
               </div>
             )}

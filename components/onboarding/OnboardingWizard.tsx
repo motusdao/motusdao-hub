@@ -130,7 +130,7 @@ export function OnboardingWizard({ role }: OnboardingWizardProps) {
 
       {/* Progress Indicator (Mobile) */}
       <div className="md:hidden fixed bottom-4 left-4 right-4">
-        <div className="glass-card-strong rounded-lg p-3">
+        <div className="glass-strong rounded-xl p-3">
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">
               Paso {currentStep + 1} de {steps.length}

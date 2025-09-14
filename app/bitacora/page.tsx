@@ -256,7 +256,7 @@ export default function BitacoraPage() {
                           value={formData.content}
                           onChange={(e) => setFormData(prev => ({ ...prev, content: e.target.value }))}
                           placeholder="Escribe sobre tu día, tus pensamientos, emociones..."
-                          className="w-full p-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent resize-none"
+                          className="w-full p-3 glass border border-white/15 rounded-xl focus-ring smooth-transition resize-none"
                           rows={4}
                           required
                           disabled={isSubmitting}
@@ -274,7 +274,7 @@ export default function BitacoraPage() {
                               type="button"
                               onClick={() => setFormData(prev => ({ ...prev, mood }))}
                               disabled={isSubmitting}
-                              className={`flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all ${
+                              className={`flex items-center space-x-2 px-4 py-2 rounded-xl border transition-all ${
                                 formData.mood === mood
                                   ? 'border-mauve-500 bg-mauve-500/20'
                                   : 'border-white/10 hover:border-white/20'
@@ -296,7 +296,7 @@ export default function BitacoraPage() {
                           value={formData.tags}
                           onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
                           placeholder="trabajo, familia, ejercicio..."
-                          className="w-full p-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent"
+                          className="w-full p-3 glass border border-white/15 rounded-xl focus-ring smooth-transition"
                           disabled={isSubmitting}
                         />
                       </div>
@@ -385,13 +385,13 @@ export default function BitacoraPage() {
                             <div className="flex space-x-2">
                               <button
                                 onClick={() => handleEdit(entry)}
-                                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                                className="p-2 hover:bg-white/15 rounded-xl transition-colors"
                               >
                                 <Edit className="w-4 h-4" />
                               </button>
                               <button
                                 onClick={() => handleDelete(entry.id)}
-                                className="p-2 hover:bg-red-500/20 rounded-lg transition-colors text-red-400"
+                                className="p-2 hover:bg-red-500/20 rounded-xl transition-colors text-red-400"
                               >
                                 <Trash2 className="w-4 h-4" />
                               </button>

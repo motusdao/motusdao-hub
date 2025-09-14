@@ -17,11 +17,11 @@ export function GlassCard({
   return (
     <div
       className={cn(
-        "rounded-xl border transition-all duration-300",
+        "smooth-transition",
         variant === 'default' 
-          ? "glass-card" 
-          : "glass-card-strong",
-        hover && "hover:bg-white/10 dark:hover:bg-white/10 hover:scale-[1.02] hover:shadow-glow",
+          ? "glass" 
+          : "glass-strong",
+        hover && "hover:bg-white/20 hover:scale-[1.02] hover:shadow-glow",
         className
       )}
     >

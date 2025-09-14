@@ -34,12 +34,12 @@ export default function RootLayout({
       >
         <PrivyProviderWrapper>
           <ThemeProvider>
-            <div className="min-h-screen bg-background">
-              <div className="flex">
+            <div className="min-h-screen bg-background overflow-x-hidden">
+              <div className="flex min-h-screen max-w-full">
                 <Sidebar />
-                <div className="flex-1 lg:ml-0">
+                <div className="flex-1 lg:ml-64 flex flex-col min-h-screen overflow-y-auto overflow-x-hidden">
                   <Topbar />
-                  <main className="min-h-[calc(100vh-4rem)]">
+                  <main className="flex-1 pt-20 px-4 max-w-full">
                     {children}
                   </main>
                   <Footer />

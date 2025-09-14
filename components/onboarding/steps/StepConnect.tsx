@@ -221,7 +221,7 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
           {/* Account Information */}
           <div className="space-y-4">
             {/* Email Display */}
-            <div className="flex items-center justify-between p-4 glass-card rounded-lg">
+            <div className="flex items-center justify-between p-4 glass rounded-xl">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-500">
                   <Mail className="w-5 h-5 text-white" />
@@ -237,7 +237,7 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
             </div>
 
             {/* Wallet Display */}
-            <div className="flex items-center justify-between p-4 glass-card rounded-lg">
+            <div className="flex items-center justify-between p-4 glass rounded-xl">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-500">
                   <Wallet className="w-5 h-5 text-white" />

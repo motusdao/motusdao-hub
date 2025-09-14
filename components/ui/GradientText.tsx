@@ -16,8 +16,8 @@ export function GradientText({
 }: GradientTextProps) {
   const variantClasses = {
     default: "gradient-text",
-    mauve: "gradient-text-mauve",
-    iris: "bg-gradient-to-r from-iris-500 to-iris-700 bg-clip-text text-transparent"
+    mauve: "gradient-text",
+    iris: "gradient-text-secondary"
   }
 
   return (

@@ -14,8 +14,8 @@ interface UIState {
   toggleSidebar: () => void
   
   // Theme state
-  theme: 'light' | 'dark'
-  setTheme: (theme: 'light' | 'dark') => void
+  theme: 'light' | 'dark' | 'matrix'
+  setTheme: (theme: 'light' | 'dark' | 'matrix') => void
   toggleTheme: () => void
   
   // Note: Authentication state is now handled by Privy directly
@@ -38,7 +38,7 @@ export const useUIStore = create<UIState>()(
       theme: 'dark',
       setTheme: (theme) => set({ theme }),
       toggleTheme: () => set((state) => ({ 
-        theme: state.theme === 'light' ? 'dark' : 'light' 
+        theme: state.theme === 'light' ? 'dark' : state.theme === 'dark' ? 'matrix' : 'light'
       })),
       
       // Authentication is now handled by Privy - no mock state needed
