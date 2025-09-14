@@ -123,8 +123,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Log detailed error for debugging
+    console.error('Detailed error:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    })
+
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: 'Error interno del servidor',
+        details: process.env.NODE_ENV === 'development' ? 
+          (error instanceof Error ? error.message : 'Unknown error') : 
+          undefined
+      },
       { status: 500 }
     )
   }

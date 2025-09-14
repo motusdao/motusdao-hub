@@ -84,12 +84,17 @@ NEXT_PUBLIC_CELO_CHAIN_ID=42220
    - This will push the Prisma schema to your Supabase database
    - Make sure your DATABASE_URL is correctly set in Vercel environment variables
 
-2. **Update Privy App Settings**:
+2. **Verify Database Connection**:
+   - Test the database health endpoint: `https://your-app.vercel.app/api/health/db`
+   - This should return a JSON response with `"status": "healthy"`
+   - If it fails, check your DATABASE_URL configuration
+
+3. **Update Privy App Settings**:
    - Go back to your Privy dashboard
    - Update the "Allowed Origins" to include your Vercel domain
    - Add: `https://your-app-name.vercel.app`
 
-3. **Test Wallet Connection**:
+4. **Test Wallet Connection**:
    - Visit your deployed app
    - Try connecting with different wallet types
    - Verify that embedded wallets are created for users without wallets
@@ -117,16 +122,28 @@ The app is now configured with:
 
 **Common Issues**:
 
-1. **Wallet Connection Fails**:
+1. **Database Connection Errors**:
+   - **Error: "Can't reach database server"**: Check your DATABASE_URL in Vercel environment variables
+   - **Error: "Database does not exist"**: Verify the database name in your connection string
+   - **Error: "Authentication failed"**: Check username and password in DATABASE_URL
+   - **Solution**: Run `npm run deploy:db` to push the schema to your database
+
+2. **User Registration Fails**:
+   - Check the health endpoint: `https://your-app.vercel.app/api/health/db`
+   - Verify database tables are created by running the deploy script
+   - Check Vercel function logs for detailed error messages
+   - Ensure all required environment variables are set
+
+3. **Wallet Connection Fails**:
    - Check that your Privy App ID is correct
    - Verify that your domain is added to allowed origins
    - Ensure Celo mainnet is configured in Privy
 
-2. **Embedded Wallets Not Created**:
+4. **Embedded Wallets Not Created**:
    - Check that `createOnLogin: 'users-without-wallets'` is set
    - Verify the user doesn't already have a connected wallet
 
-3. **Wrong Network**:
+5. **Wrong Network**:
    - Ensure Celo mainnet (42220) is set as the default chain
    - Check that the RPC URL is correct
 
