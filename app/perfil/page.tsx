@@ -35,7 +35,7 @@ export default function PerfilPage() {
   const eoaAddress = embeddedWallet?.address
   
   // Get email from user
-  const userEmail = user?.email?.address || user?.google?.email || user?.twitter?.email || 'No disponible'
+  const userEmail = user?.email?.address || user?.google?.email || 'No disponible'
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     displayName: 'Usuario MotusDAO',

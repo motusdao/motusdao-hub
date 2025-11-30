@@ -141,13 +141,15 @@ export function ADNBackdrop({
 
     window.addEventListener('resize', handleResize)
 
+    // Store mount element reference for cleanup
+    const mountElement = mountRef.current
+
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize)
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
       }
-      const mountElement = mountRef.current
       if (mountElement && renderer.domElement) {
         mountElement.removeChild(renderer.domElement)
       }

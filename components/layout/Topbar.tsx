@@ -43,7 +43,7 @@ export function Topbar() {
   const eoaAddress = embeddedWallet?.address
   
   // Get email from user
-  const userEmail = user?.email?.address || user?.google?.email || user?.twitter?.email || 'No disponible'
+  const userEmail = user?.email?.address || user?.google?.email || 'No disponible'
   
   const [showRoleDropdown, setShowRoleDropdown] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
