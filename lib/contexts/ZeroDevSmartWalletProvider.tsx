@@ -4,7 +4,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { 
   createKernelAccount, 
-  createKernelAccountClient
+  createKernelAccountClient,
+  type KernelAccountClient
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator'
@@ -15,7 +16,7 @@ import { celoMainnet } from '@/lib/celo'
 const FORCED_CHAIN = celoMainnet // Chain ID 42220
 
 interface ZeroDevContextType {
-  kernelClient: any | null
+  kernelClient: KernelAccountClient | null
   smartAccountAddress: Address | null
   isInitializing: boolean
   error: string | null
@@ -43,7 +44,7 @@ export function ZeroDevSmartWalletProvider({
 }: ZeroDevSmartWalletProviderProps) {
   const { authenticated } = usePrivy()
   const { wallets } = useWallets()
-  const [kernelClient, setKernelClient] = useState<any | null>(null)
+  const [kernelClient, setKernelClient] = useState<KernelAccountClient | null>(null)
   const [smartAccountAddress, setSmartAccountAddress] = useState<Address | null>(null)
   const [isInitializing, setIsInitializing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -116,7 +117,7 @@ export function ZeroDevSmartWalletProvider({
         
         // Create ECDSA validator using ZeroDev SDK
         const ecdsaValidator = await signerToEcdsaValidator(publicClient, {
-          signer: walletClient as any, // Type assertion for compatibility
+          signer: walletClient,
           entryPoint: entryPoint,
           kernelVersion: KERNEL_V3_1,
         })

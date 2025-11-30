@@ -20,7 +20,7 @@ interface StepExitoProps {
   onComplete?: () => void
 }
 
-export function StepExito({ onComplete: _onComplete }: StepExitoProps) {
+export function StepExito({ onComplete }: StepExitoProps) {
   // TODO: Use onComplete callback when needed
   const { role, reset } = useOnboardingStore()
   const router = useRouter()

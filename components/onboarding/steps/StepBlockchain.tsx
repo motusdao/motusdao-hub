@@ -13,7 +13,6 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
 import { useOnboardingStore } from '@/lib/onboarding-store'
 import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
-import { getCeloExplorerUrl } from '@/lib/celo'
 
 interface StepBlockchainProps {
   onNext: () => void
@@ -27,7 +26,6 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
   const { smartAccountAddress, kernelClient, isInitializing, error: smartWalletError } = useSmartAccount()
   const [status, setStatus] = useState<BlockchainStatus>('idle')
   const [error, setError] = useState<string>('')
-  const [txHash, setTxHash] = useState<string>('')
 
   // Wait for smart wallet to be ready
   useEffect(() => {
@@ -110,14 +108,20 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
       })
 
       if (!res.ok) {
-        let err: any = {}
+        interface ErrorResponse {
+          message?: string
+          error?: string
+          details?: string
+          code?: string
+        }
+        let err: ErrorResponse = {}
         let errorText = ''
         
         try {
           errorText = await res.text()
           if (errorText) {
             try {
-              err = JSON.parse(errorText)
+              err = JSON.parse(errorText) as ErrorResponse
             } catch (parseError) {
               // If JSON parsing fails, use the raw text as error message
               console.warn('Error response is not valid JSON:', parseError)

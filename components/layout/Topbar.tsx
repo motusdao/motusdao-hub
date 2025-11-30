@@ -12,7 +12,6 @@ import {
   LogOut,
   Copy,
   Check,
-  Monitor,
   Zap,
   Shield
 } from 'lucide-react'
@@ -49,7 +48,6 @@ export function Topbar() {
   const [showRoleDropdown, setShowRoleDropdown] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showThemeDropdown, setShowThemeDropdown] = useState(false)
-  const [copied, setCopied] = useState(false)
   const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const roleButtonRef = useRef<HTMLButtonElement>(null)

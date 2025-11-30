@@ -84,9 +84,9 @@ export function TestGaslessTransaction() {
             params: [{ chainId: celoChainId }],
           })
         }
-      } catch (switchError: any) {
+      } catch (switchError: unknown) {
         // If chain doesn't exist, add it
-        if (switchError.code === 4902) {
+        if (switchError && typeof switchError === 'object' && 'code' in switchError && (switchError as { code?: number }).code === 4902) {
           await provider.request({
             method: 'wallet_addEthereumChain',
             params: [{
