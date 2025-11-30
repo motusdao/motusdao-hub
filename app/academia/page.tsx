@@ -17,6 +17,7 @@ import {
   Lock
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 
 // Mock course data
@@ -209,9 +210,11 @@ export default function AcademiaPage() {
                       {/* Course Image */}
                       <div className="h-48 bg-gradient-to-br from-mauve-500/20 to-iris-500/20 flex items-center justify-center relative overflow-hidden">
                         {course.slug === 'ia-para-psicologos' ? (
-                          <img 
+                          <Image 
                             src={course.imageUrl} 
                             alt={course.title}
+                            width={400}
+                            height={200}
                             className="w-full h-full object-cover"
                           />
                         ) : (

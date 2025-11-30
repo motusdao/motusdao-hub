@@ -19,6 +19,7 @@ import {
   Copy
 } from 'lucide-react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { IA_PARA_PSICOLOGOS } from '@/content/courses/ia-para-psicologos'
@@ -70,9 +71,11 @@ export default function IAParaPsicologosPage() {
                 <GlassCard className="p-8">
                   {/* Course Image */}
                   <div className="h-64 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-lg flex items-center justify-center mb-6 relative overflow-hidden">
-                    <img 
+                    <Image 
                       src="https://i.postimg.cc/tgGdtwSX/MotusAI.png" 
                       alt={IA_PARA_PSICOLOGOS.title}
+                      width={800}
+                      height={400}
                       className="w-full h-full object-cover rounded-lg"
                     />
                   </div>
