@@ -2,19 +2,21 @@
 
 import { useState } from 'react'
 import { useWallets, usePrivy } from '@privy-io/react-auth'
-import { createWalletClient, custom, parseEther } from 'viem'
+import { parseEther } from 'viem'
 import { celoMainnet } from '@/lib/celo'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
 import { Loader, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { getCeloExplorerUrl } from '@/lib/celo'
 import { getPrimaryWallet, identifySmartWallet, identifyEmbeddedWallet, verifySmartWallet } from '@/lib/wallet-utils'
+import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
 
 type TransactionStatus = 'idle' | 'preparing' | 'sending' | 'success' | 'error'
 
 export function TestGaslessTransaction() {
   const { wallets, ready } = useWallets()
   const { authenticated } = usePrivy()
+  const { kernelClient, smartAccountAddress, isInitializing } = useSmartAccount()
   const [status, setStatus] = useState<TransactionStatus>('idle')
   const [txHash, setTxHash] = useState<string>('')
   const [error, setError] = useState<string>('')
@@ -40,21 +42,18 @@ export function TestGaslessTransaction() {
   }
 
   const sendTestTransaction = async () => {
-    if (!smartWallet || !ready || !authenticated) {
-      const errorMsg = verification.exists 
-        ? 'Please connect your wallet first.'
-        : 'Wallet not found. Please ensure you are logged in.'
+    // Use ZeroDev Kernel client which has paymaster configured
+    if (!kernelClient || !smartAccountAddress) {
+      const errorMsg = isInitializing
+        ? 'Smart wallet is still initializing. Please wait...'
+        : 'Smart wallet not ready. Please ensure you are logged in and the smart wallet is initialized.'
       setError(errorMsg)
       return
     }
-    
-    // Verify we're using the smart wallet (not embedded wallet)
-    const isSmartWallet = identifySmartWallet(wallets)?.address?.toLowerCase() === smartWallet.address?.toLowerCase()
-    if (!isSmartWallet && !verification.isCreating) {
-      console.warn('⚠️ Using embedded wallet instead of smart wallet. Gasless transactions may not work.')
-      // Still allow transaction - smart wallet will be created on first use
-    } else if (verification.isCreating) {
-      console.log('ℹ️ Smart wallet will be created automatically on this transaction')
+
+    if (!ready || !authenticated) {
+      setError('Please connect your wallet first.')
+      return
     }
 
     setStatus('preparing')
@@ -62,68 +61,19 @@ export function TestGaslessTransaction() {
     setTxHash('')
 
     try {
-      // Get the EIP1193 provider from Privy's smart wallet
-      // Smart wallets are contract accounts that support paymaster gas sponsorship
-      // This provider automatically uses the paymaster configured in Privy dashboard
-      const provider = await smartWallet.getEthereumProvider()
-      
-      if (!provider) {
-        throw new Error('Failed to get wallet provider')
-      }
-
-      // Ensure wallet is on Celo Mainnet (chain ID 42220)
-      // This is important for paymaster to work correctly
-      try {
-        const currentChainId = await provider.request({ method: 'eth_chainId' })
-        const celoChainId = `0x${celoMainnet.id.toString(16)}` // Convert 42220 to hex: 0xa4ec
-        
-        if (currentChainId !== celoChainId) {
-          // Switch to Celo Mainnet
-          await provider.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: celoChainId }],
-          })
-        }
-      } catch (switchError: unknown) {
-        // If chain doesn't exist, add it
-        if (switchError && typeof switchError === 'object' && 'code' in switchError && (switchError as { code?: number }).code === 4902) {
-          await provider.request({
-            method: 'wallet_addEthereumChain',
-            params: [{
-              chainId: `0x${celoMainnet.id.toString(16)}`,
-              chainName: celoMainnet.name,
-              nativeCurrency: {
-                name: celoMainnet.nativeCurrency.name,
-                symbol: celoMainnet.nativeCurrency.symbol,
-                decimals: celoMainnet.nativeCurrency.decimals,
-              },
-              rpcUrls: celoMainnet.rpcUrls.default.http,
-              blockExplorerUrls: [celoMainnet.blockExplorers.default.url],
-            }],
-          })
-        } else {
-          throw switchError
-        }
-      }
-
       setStatus('sending')
 
-      // Create a wallet client using Privy's smart wallet provider
-      // Smart wallets automatically use the paymaster for gas sponsorship
-      const walletClient = createWalletClient({
-        account: smartWallet.address as `0x${string}`,
-        chain: celoMainnet,
-        transport: custom(provider),
-      })
+      console.log('🔄 Sending gasless transaction using ZeroDev Kernel client with paymaster...')
+      console.log('📍 Smart wallet address:', smartAccountAddress)
 
-      // Send a small test transaction
-      // Gas fees will be automatically sponsored by Pimlico paymaster
-      // Note: If paymaster is configured correctly in Privy dashboard, 
-      // this should be gasless. If you see a gas fee, check Privy dashboard configuration.
-      const hash = await walletClient.sendTransaction({
+      // Use ZeroDev Kernel client which has the paymaster configured
+      // This will automatically use the ZeroDev paymaster for gas sponsorship
+      const hash = await kernelClient.sendTransaction({
         to: '0x0000000000000000000000000000000000000000', // Burn address for testing
         value: parseEther('0.001'), // Very small amount: 0.001 CELO
       })
+
+      console.log('✅ Transaction sent successfully:', hash)
 
       setTxHash(hash)
       setStatus('success')
@@ -134,7 +84,16 @@ export function TestGaslessTransaction() {
       }, 2000)
     } catch (err) {
       console.error('Transaction error:', err)
-      setError(err instanceof Error ? err.message : 'Transaction failed')
+      const errorMessage = err instanceof Error ? err.message : 'Transaction failed'
+      
+      // Check if error is related to paymaster/funding
+      if (errorMessage.toLowerCase().includes('fund') || 
+          errorMessage.toLowerCase().includes('balance') ||
+          errorMessage.toLowerCase().includes('insufficient')) {
+        setError(`${errorMessage}. Make sure the ZeroDev paymaster is funded. Check your ZeroDev dashboard.`)
+      } else {
+        setError(errorMessage)
+      }
       setStatus('error')
     }
   }
@@ -160,20 +119,39 @@ export function TestGaslessTransaction() {
     )
   }
 
-  if (!smartWallet) {
+  // Check if ZeroDev Kernel client is ready
+  if (isInitializing) {
     return (
       <GlassCard className="p-6">
         <div className="text-center">
-          <AlertCircle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+          <Loader className="w-8 h-8 text-mauve-500 mx-auto mb-2 animate-spin" />
           <p className="text-muted-foreground mb-4">
-            No wallet found. Please log in with email to get a wallet.
+            Initializing smart wallet with ZeroDev paymaster...
           </p>
         </div>
       </GlassCard>
     )
   }
 
-  // Check if smart wallet exists and is properly configured
+  if (!kernelClient || !smartAccountAddress) {
+    return (
+      <GlassCard className="p-6">
+        <div className="text-center">
+          <AlertCircle className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
+          <p className="text-muted-foreground mb-4">
+            Smart wallet not ready. Please ensure you are logged in and the smart wallet is initialized.
+          </p>
+          {!smartWallet && (
+            <p className="text-sm text-muted-foreground mt-2">
+              No Privy wallet found. Please log in with email to get a wallet.
+            </p>
+          )}
+        </div>
+      </GlassCard>
+    )
+  }
+
+  // Check if smart wallet exists and is properly configured (for display purposes)
   if (!verification.exists) {
     return (
       <GlassCard className="p-6">
@@ -249,7 +227,7 @@ export function TestGaslessTransaction() {
         <div>
           <h3 className="text-xl font-semibold mb-2">Test Gasless Transaction</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            This will send a small test transaction (0.001 CELO) to verify that the Pimlico paymaster
+            This will send a small test transaction (0.001 CELO) to verify that the ZeroDev paymaster
             is sponsoring gas fees. The transaction should complete without requiring you to pay gas.
           </p>
         </div>
@@ -258,22 +236,26 @@ export function TestGaslessTransaction() {
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Smart Wallet Address:</span>
-              <span className="font-mono text-xs">{smartWallet.address}</span>
+              <span className="font-mono text-xs">{smartAccountAddress}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Wallet Type:</span>
               <span className="capitalize">
-                {verification.exists ? 'Smart Wallet (Contract)' : 'Unknown'}
+                ZeroDev Kernel (Contract with Paymaster)
               </span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Chain:</span>
               <span>Celo Mainnet (42220)</span>
             </div>
-            {embeddedWallet && embeddedWallet.address !== smartWallet.address && (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">Paymaster:</span>
+              <span className="text-green-400">✅ ZeroDev (Gasless Enabled)</span>
+            </div>
+            {embeddedWallet && embeddedWallet.address !== smartAccountAddress && (
               <div className="mt-2 pt-2 border-t border-mauve-500/20">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground text-xs">Embedded Wallet (EOA):</span>
+                  <span className="text-muted-foreground text-xs">Embedded Wallet (EOA - Signer):</span>
                   <span className="font-mono text-xs text-muted-foreground">{embeddedWallet.address}</span>
                 </div>
               </div>
@@ -328,7 +310,7 @@ export function TestGaslessTransaction() {
             )}
             <p className="text-sm text-muted-foreground">
               ✅ Check the transaction on Celo Explorer. If gas was sponsored, you should see
-              that the transaction was paid by the paymaster (not your wallet balance).
+              that the transaction was paid by the ZeroDev paymaster (not your wallet balance).
             </p>
           </div>
         )}

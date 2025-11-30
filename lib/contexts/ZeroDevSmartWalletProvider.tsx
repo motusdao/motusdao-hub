@@ -169,18 +169,26 @@ export function ZeroDevSmartWalletProvider({
         console.log('[ZERODEV] Created smart account:', account.address)
 
         // URLs with Chain ID 42220 (Celo Mainnet)
+        // IMPORTANT: Even though project is created on Alfajores (testnet) in dashboard,
+        // the same Project ID works on Celo Mainnet by specifying chain ID in URL
         const bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
         
-        // ZeroDev Paymaster Configuration (Self-Funded)
-        // Using selfFunded=true since you've deposited CELO directly to the paymaster contract
-        // Note: If this doesn't work, try without the parameter: 
-        // const paymasterUrl = `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}`
-        const paymasterUrl = `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}?selfFunded=true`
+        // ZeroDev Paymaster Configuration
+        // Self-Funded Mode: Requires CELO deposit to paymaster contract on Celo Mainnet
+        // The paymaster URL must include the chain ID (42220) for self-funded mode
+        const useSelfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
+        const paymasterUrl = useSelfFunded
+          ? `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}?selfFunded=true`
+          : `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}`
         
-        console.log('[ZERODEV] Creating ZeroDev paymaster client...')
-        console.log('[ZERODEV] Project ID:', zeroDevProjectId)
-        console.log('[ZERODEV] Paymaster URL:', paymasterUrl.replace(zeroDevProjectId, '***'))
-        console.log('[ZERODEV] Chain ID:', FORCED_CHAIN.id)
+        console.log('[ZERODEV] ⚙️ Configuration:', {
+          projectId: zeroDevProjectId.substring(0, 8) + '...',
+          chainId: FORCED_CHAIN.id,
+          chainName: FORCED_CHAIN.name,
+          mode: useSelfFunded ? 'self-funded' : 'credit-card-billing',
+        })
+        console.log('[ZERODEV] 📦 Bundler URL:', bundlerUrl.replace(zeroDevProjectId, '***'))
+        console.log('[ZERODEV] 💰 Paymaster URL:', paymasterUrl.replace(zeroDevProjectId, '***'))
         
         // Create ZeroDev paymaster client
         const paymasterClient = createZeroDevPaymasterClient({
@@ -188,7 +196,13 @@ export function ZeroDevSmartWalletProvider({
           transport: http(paymasterUrl),
         })
         
-        console.log('[ZERODEV] ✅ ZeroDev paymaster client created (self-funded)')
+        console.log('[ZERODEV] ✅ ZeroDev paymaster client created', {
+          mode: useSelfFunded ? 'self-funded (mainnet)' : 'credit-card-billing',
+          chainId: FORCED_CHAIN.id,
+          note: useSelfFunded 
+            ? 'Make sure paymaster contract is funded on Celo Mainnet (42220)' 
+            : 'Using credit card billing'
+        })
         
         console.log('[ZERODEV] Creating Kernel account client...')
         
