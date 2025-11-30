@@ -77,10 +77,22 @@ export function TestGaslessTransaction() {
         }],
       })
 
-      console.log('✅ User operation sent, waiting for transaction hash...', userOpHash)
+      console.log('✅ User operation sent, waiting for receipt...', userOpHash)
 
-      // Wait for the user operation to be included in a bundle and get the transaction hash
-      const hash = await kernelClient.waitForUserOperationTransaction(userOpHash)
+      // Wait for the user operation to be included in a bundle and get the receipt
+      // According to ZeroDev SDK source, waitForUserOperationReceipt returns:
+      // { receipt: { transactionHash: string } }
+      const receipt = await kernelClient.waitForUserOperationReceipt({
+        hash: userOpHash
+      })
+
+      // Extract the transaction hash from the receipt
+      // ZeroDev SDK receipt structure: { receipt: { transactionHash: string } }
+      const hash = receipt?.receipt?.transactionHash
+
+      if (!hash) {
+        throw new Error('Transaction hash not found in receipt')
+      }
 
       console.log('✅ Transaction confirmed:', hash)
 
