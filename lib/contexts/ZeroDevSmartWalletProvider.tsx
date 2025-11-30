@@ -9,7 +9,7 @@ import {
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator'
-import { createPublicClient, http, type Address } from 'viem'
+import { createPublicClient, createWalletClient, custom, http, type Address, type WalletClient, type Account, type Transport, type Chain } from 'viem'
 import { celoMainnet } from '@/lib/celo'
 
 // FORZAR Celo Mainnet - no importa qué diga el dashboard
@@ -109,10 +109,20 @@ export function ZeroDevSmartWalletProvider({
         
         console.log('[ZERODEV] Creating ECDSA validator...')
         
+        // Create wallet client with account for signing
+        // Using address with custom transport - the provider handles signing
+        // Type assertion needed because viem's type system doesn't fully recognize
+        // that custom transport with address string works as a WalletClient with Account
+        const walletClient = createWalletClient({
+          account: walletToUse.address as `0x${string}`,
+          chain: FORCED_CHAIN,
+          transport: custom(provider),
+        }) as WalletClient<Transport, Chain, Account>
+        
         // Create ECDSA validator using ZeroDev SDK
-        // Pass the EIP1193 provider directly as the signer (it's a valid Signer type)
+        // WalletClient with Account is a valid Signer type
         const ecdsaValidator = await signerToEcdsaValidator(publicClient, {
-          signer: provider, // EIP1193Provider is a valid Signer type
+          signer: walletClient,
           entryPoint: entryPoint,
           kernelVersion: KERNEL_V3_1,
         })
