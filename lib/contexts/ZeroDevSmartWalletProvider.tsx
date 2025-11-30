@@ -5,6 +5,7 @@ import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { 
   createKernelAccount, 
   createKernelAccountClient,
+  createZeroDevPaymasterClient,
   type KernelAccountClient
 } from '@zerodev/sdk'
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
@@ -150,49 +151,33 @@ export function ZeroDevSmartWalletProvider({
         // URLs with Chain ID 42220 (Celo Mainnet)
         const bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
         
-        // Pimlico Paymaster Configuration
-        const pimlicoApiKey = process.env.NEXT_PUBLIC_PIMLICO_API_KEY
-        if (!pimlicoApiKey) {
-          console.warn('[ZERODEV] ⚠️ PIMLICO_API_KEY not found, paymaster will not work')
-        }
+        // ZeroDev Paymaster Configuration (Self-Funded)
+        // Using selfFunded=true since you've deposited CELO directly to the paymaster contract
+        const paymasterUrl = `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}?selfFunded=true`
         
-        // Pimlico Paymaster URL for Celo Mainnet (Chain ID 42220)
-        const pimlicoPaymasterUrl = pimlicoApiKey 
-          ? `https://api.pimlico.io/v2/${FORCED_CHAIN.id}/rpc?apikey=${pimlicoApiKey}`
-          : null
-
-        console.log('[ZERODEV] Creating paymaster client...')
-        if (pimlicoPaymasterUrl) {
-          console.log('[ZERODEV] ✅ Pimlico paymaster URL configured')
-          console.log('[ZERODEV] Paymaster endpoint:', pimlicoPaymasterUrl.replace(/apikey=[^&]+/, 'apikey=***'))
-        } else {
-          console.warn('[ZERODEV] ⚠️ Pimlico paymaster not configured - API key missing')
-        }
+        console.log('[ZERODEV] Creating ZeroDev paymaster client...')
+        console.log('[ZERODEV] Paymaster URL:', paymasterUrl.replace(zeroDevProjectId, '***'))
         
-        // Create Pimlico paymaster client
-        // Pimlico uses the same paymaster interface as ZeroDev (ERC-4337 standard)
-        // We create a paymaster client with the Pimlico API endpoint
-        const paymasterClient = pimlicoPaymasterUrl ? {
+        // Create ZeroDev paymaster client
+        const paymasterClient = createZeroDevPaymasterClient({
           chain: FORCED_CHAIN,
-          transport: http(pimlicoPaymasterUrl),
-        } : undefined
+          transport: http(paymasterUrl),
+        })
+        
+        console.log('[ZERODEV] ✅ ZeroDev paymaster client created (self-funded)')
         
         console.log('[ZERODEV] Creating Kernel account client...')
         
-        // Create Kernel client using ZeroDev SDK with Pimlico paymaster
+        // Create Kernel client using ZeroDev SDK with ZeroDev paymaster
         const client = createKernelAccountClient({
           account,
           chain: FORCED_CHAIN,
           bundlerTransport: http(bundlerUrl),
-          paymaster: paymasterClient, // Pimlico paymaster client (or undefined if not configured)
+          paymaster: paymasterClient, // ZeroDev paymaster client (self-funded)
           client: publicClient,
         })
         
-        if (!paymasterClient) {
-          console.warn('[ZERODEV] ⚠️ Paymaster not configured - transactions will require gas fees')
-        } else {
-          console.log('[ZERODEV] ✅ Pimlico paymaster configured - gasless transactions enabled')
-        }
+        console.log('[ZERODEV] ✅ ZeroDev paymaster configured - gasless transactions enabled')
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)
         console.log("[ZERODEV] Chain ID:", await client.getChainId())
