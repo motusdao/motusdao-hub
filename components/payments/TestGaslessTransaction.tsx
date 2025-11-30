@@ -67,15 +67,22 @@ export function TestGaslessTransaction() {
       console.log('📍 Smart wallet address:', smartAccountAddress)
 
       // Use ZeroDev Kernel client which has the paymaster configured
-      // This will automatically use the ZeroDev paymaster for gas sponsorship
-      // The account is already associated with the kernelClient, so we pass it explicitly
-      const hash = await kernelClient.sendTransaction({
-        account: kernelClient.account,
-        to: '0x0000000000000000000000000000000000000000' as `0x${string}`, // Burn address for testing
-        value: parseEther('0.001'), // Very small amount: 0.001 CELO
+      // For Kernel accounts, we use sendUserOperation which handles gasless transactions
+      // Treasury multisig address: 0xf229F3Dcea3D7cd3cA5ca41C4C50135D7b37F2b9
+      const userOpHash = await kernelClient.sendUserOperation({
+        calls: [{
+          to: '0xf229F3Dcea3D7cd3cA5ca41C4C50135D7b37F2b9' as `0x${string}`, // Treasury multisig address
+          value: parseEther('0.001'), // Very small amount: 0.001 CELO
+          data: '0x' as `0x${string}`, // No data, just a value transfer
+        }],
       })
 
-      console.log('✅ Transaction sent successfully:', hash)
+      console.log('✅ User operation sent, waiting for transaction hash...', userOpHash)
+
+      // Wait for the user operation to be included in a bundle and get the transaction hash
+      const hash = await kernelClient.waitForUserOperationTransaction(userOpHash)
+
+      console.log('✅ Transaction confirmed:', hash)
 
       setTxHash(hash)
       setStatus('success')
