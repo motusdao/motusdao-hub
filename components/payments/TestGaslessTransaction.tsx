@@ -68,8 +68,10 @@ export function TestGaslessTransaction() {
 
       // Use ZeroDev Kernel client which has the paymaster configured
       // This will automatically use the ZeroDev paymaster for gas sponsorship
+      // The account is already associated with the kernelClient, so we pass it explicitly
       const hash = await kernelClient.sendTransaction({
-        to: '0x0000000000000000000000000000000000000000', // Burn address for testing
+        account: kernelClient.account,
+        to: '0x0000000000000000000000000000000000000000' as `0x${string}`, // Burn address for testing
         value: parseEther('0.001'), // Very small amount: 0.001 CELO
       })
 
