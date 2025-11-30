@@ -138,7 +138,7 @@ export function ZeroDevSmartWalletProvider({
           },
           entryPoint: entryPoint,
           kernelVersion: KERNEL_V3_1,
-          index: 0n, // Use index 0 for deterministic address - same owner = same address
+          index: BigInt(0), // Use index 0 for deterministic address - same owner = same address
         })
         
         console.log('[ZERODEV] Smart account created with index 0 (deterministic)')
