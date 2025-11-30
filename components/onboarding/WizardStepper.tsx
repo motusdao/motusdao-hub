@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Check, Circle, Lock } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -20,6 +21,13 @@ interface WizardStepperProps {
 }
 
 export function WizardStepper({ steps, currentStep, role, onStepClick, isStepValid }: WizardStepperProps) {
+  // Use state to prevent hydration mismatch
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
   return (
     <div className="w-full">
       {/* Desktop Stepper */}
@@ -29,7 +37,10 @@ export function WizardStepper({ steps, currentStep, role, onStepClick, isStepVal
             const isCompleted = index < currentStep
             const isCurrent = index === currentStep
             const isUpcoming = index > currentStep
-            const canNavigate = isCompleted || isCurrent || (isStepValid && isStepValid(index))
+            // Only check step validity on client to prevent hydration mismatch
+            const canNavigate = isMounted 
+              ? (isCompleted || isCurrent || (isStepValid && isStepValid(index)))
+              : (isCompleted || isCurrent) // Default to false for upcoming steps on server
             const isClickable = onStepClick && canNavigate
 
             return (
@@ -150,7 +161,10 @@ export function WizardStepper({ steps, currentStep, role, onStepClick, isStepVal
           {steps.map((_, index) => {
             const isCompleted = index < currentStep
             const isCurrent = index === currentStep
-            const canNavigate = index <= currentStep || (isStepValid && isStepValid(index))
+            // Only check step validity on client to prevent hydration mismatch
+            const canNavigate = isMounted 
+              ? (index <= currentStep || (isStepValid && isStepValid(index)))
+              : (index <= currentStep) // Default to false for upcoming steps on server
             const isClickable = onStepClick && canNavigate
 
             return (

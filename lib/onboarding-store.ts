@@ -10,7 +10,7 @@ export interface OnboardingData {
   walletAddress: string
   privyId?: string
   celoChainId?: number
-  walletType?: 'embedded' | 'external'
+  walletType?: 'embedded' | 'external' | 'smart-wallet'
   
   // Paso 2: Perfil básico
   nombre: string
@@ -112,18 +112,33 @@ export const useOnboardingStore = create<OnboardingState>()(
         })
         
         switch (step) {
-          case 0: // Conexión
+          case 0: // Conexión (email login)
             return !!(data.walletAddress && data.email)
           
-          case 1: // Perfil específico (terapéutico o profesional)
+          case 1: // Selección de rol
+            return !!role // Role must be selected
+          
+          case 2: // Perfil específico (terapéutico o profesional)
             if (role === 'usuario') {
               return !!(
+                data.nombre &&
+                data.apellido &&
+                data.telefono &&
+                data.fechaNacimiento &&
+                data.ciudad &&
+                data.pais &&
                 data.tipoAtencion && 
                 data.problematica && 
                 data.preferenciaAsignacion
               )
             } else if (role === 'psm') {
               return !!(
+                data.nombre &&
+                data.apellido &&
+                data.telefono &&
+                data.fechaNacimiento &&
+                data.ciudad &&
+                data.pais &&
                 data.cedulaProfesional && 
                 data.formacionAcademica && 
                 data.experienciaAnios !== undefined && 
@@ -134,10 +149,10 @@ export const useOnboardingStore = create<OnboardingState>()(
             }
             return false
           
-          case 2: // Revisión
+          case 3: // Revisión
             return true // Siempre válido si llegamos aquí
           
-          case 3: // Blockchain
+          case 4: // Blockchain
             return true // Siempre válido si llegamos aquí
           
           default:
@@ -178,24 +193,27 @@ export const getFormattedWalletAddress = (address: string): string => {
 // Utilidades para obtener pasos por rol
 export const getStepsForRole = (role: UserRole) => {
   const baseSteps = [
-    { id: 0, title: 'Conexión', description: 'Conecta tu wallet y email' },
-    { id: 1, title: 'Perfil', description: 'Información personal' },
-    { id: 2, title: 'Revisión', description: 'Revisa tu información' },
-    { id: 3, title: 'Blockchain', description: 'Registro en blockchain' },
-    { id: 4, title: 'Listo', description: '¡Registro completado!' }
+    { id: 0, title: 'Conexión', description: 'Inicia sesión con email' },
+    { id: 1, title: 'Rol', description: 'Selecciona tu tipo de cuenta' },
+    { id: 2, title: 'Perfil', description: 'Información personal' },
+    { id: 3, title: 'Revisión', description: 'Revisa tu información' },
+    { id: 4, title: 'Blockchain', description: 'Registro en blockchain' },
+    { id: 5, title: 'Listo', description: '¡Registro completado!' }
   ]
   
   if (role === 'usuario') {
     return [
       baseSteps[0], // Conexión
-      { id: 1, title: 'Terapéutico', description: 'Perfil terapéutico' },
-      ...baseSteps.slice(2) // Revisión, Blockchain, Listo
+      baseSteps[1], // Rol
+      { id: 2, title: 'Terapéutico', description: 'Perfil terapéutico' },
+      ...baseSteps.slice(3) // Revisión, Blockchain, Listo
     ]
   } else {
     return [
       baseSteps[0], // Conexión
-      { id: 1, title: 'Profesional', description: 'Datos profesionales' },
-      ...baseSteps.slice(2) // Revisión, Blockchain, Listo
+      baseSteps[1], // Rol
+      { id: 2, title: 'Profesional', description: 'Datos profesionales' },
+      ...baseSteps.slice(3) // Revisión, Blockchain, Listo
     ]
   }
 }

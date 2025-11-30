@@ -13,11 +13,14 @@ import {
   Copy,
   Check,
   Monitor,
-  Zap
+  Zap,
+  Shield
 } from 'lucide-react'
 import { useState, useRef, useEffect } from 'react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { createPortal } from 'react-dom'
+import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
+import { identifyEmbeddedWallet } from '@/lib/wallet-utils'
 
 export function Topbar() {
   const { 
@@ -33,10 +36,21 @@ export function Topbar() {
   const { ready, authenticated, user, login, logout } = usePrivy()
   const { wallets } = useWallets()
   
+  // ZeroDev smart wallet hook
+  const { smartAccountAddress, isInitializing } = useSmartAccount()
+  
+  // Get EOA (embedded wallet from Privy)
+  const embeddedWallet = identifyEmbeddedWallet(wallets)
+  const eoaAddress = embeddedWallet?.address
+  
+  // Get email from user
+  const userEmail = user?.email?.address || user?.google?.email || user?.twitter?.email || 'No disponible'
+  
   const [showRoleDropdown, setShowRoleDropdown] = useState(false)
   const [showUserDropdown, setShowUserDropdown] = useState(false)
   const [showThemeDropdown, setShowThemeDropdown] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [copiedAddress, setCopiedAddress] = useState<string | null>(null)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const roleButtonRef = useRef<HTMLButtonElement>(null)
 
@@ -76,12 +90,12 @@ export function Topbar() {
     setShowUserDropdown(false)
   }
 
-  const handleCopyAddress = async () => {
-    if (userAddress) {
+  const handleCopyAddress = async (address: string, type: string) => {
+    if (address) {
       try {
-        await navigator.clipboard.writeText(userAddress)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 2000)
+        await navigator.clipboard.writeText(address)
+        setCopiedAddress(type)
+        setTimeout(() => setCopiedAddress(null), 2000)
       } catch (err) {
         console.error('Failed to copy address:', err)
       }
@@ -91,10 +105,6 @@ export function Topbar() {
   const formatAddress = (address: string) => {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
-
-  // Get the primary wallet address
-  const primaryWallet = wallets.find(wallet => wallet.walletClientType === 'privy')
-  const userAddress = primaryWallet?.address || user?.wallet?.address
 
   return (
     <header className="fixed top-4 left-0 right-0 z-40 mx-2 sm:mx-4 lg:ml-64 lg:mr-4 glass-navbar max-w-full">
@@ -239,8 +249,8 @@ export function Topbar() {
                 </div>
                 <div className="text-left hidden sm:block">
                   <p className="text-sm font-medium">Conectado</p>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {userAddress ? formatAddress(userAddress) : 'Wallet'}
+                  <p className="text-xs text-muted-foreground">
+                    {smartAccountAddress ? formatAddress(smartAccountAddress) : eoaAddress ? formatAddress(eoaAddress) : 'Wallet'}
                   </p>
                 </div>
                 <div className="text-left sm:hidden">
@@ -250,32 +260,95 @@ export function Topbar() {
               </button>
 
               {showUserDropdown && (
-                <div className="absolute top-full right-0 mt-2 w-64 glass-strong border border-white/10 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50">
-                  <div className="p-2 space-y-1">
-                    <div className="px-3 py-2 text-sm text-muted-foreground border-b border-white/10">
-                      <div className="flex items-center justify-between">
-                        <span>Dirección de wallet:</span>
-                        <button
-                          onClick={handleCopyAddress}
-                          className="flex items-center space-x-1 text-xs hover:text-white transition-colors"
-                        >
-                          {copied ? (
-                            <>
-                              <Check className="w-3 h-3 text-green-400" />
-                              <span className="text-green-400">Copiado</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3 h-3" />
-                              <span>Copiar</span>
-                            </>
-                          )}
-                        </button>
+                <div className="absolute top-full right-0 mt-2 w-80 glass-strong border border-white/10 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] z-50">
+                  <div className="p-3 space-y-3">
+                    {/* Email */}
+                    <div className="px-3 py-2 text-sm border-b border-white/10">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-muted-foreground flex items-center space-x-2">
+                          <User className="w-4 h-4" />
+                          <span>Email:</span>
+                        </span>
                       </div>
-                      <p className="font-mono text-xs mt-1 break-all">
-                        {userAddress || 'No disponible'}
+                      <p className="font-mono text-xs break-all">
+                        {userEmail}
                       </p>
                     </div>
+                    
+                    {/* EOA Address */}
+                    {eoaAddress && (
+                      <div className="px-3 py-2 text-sm border-b border-white/10">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-muted-foreground flex items-center space-x-2">
+                            <Wallet className="w-4 h-4" />
+                            <span>EOA (Privy):</span>
+                          </span>
+                          <button
+                            onClick={() => handleCopyAddress(eoaAddress, 'eoa')}
+                            className="flex items-center space-x-1 text-xs hover:text-white transition-colors"
+                          >
+                            {copiedAddress === 'eoa' ? (
+                              <>
+                                <Check className="w-3 h-3 text-green-400" />
+                                <span className="text-green-400">Copiado</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>Copiar</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <p className="font-mono text-xs break-all">
+                          {eoaAddress}
+                        </p>
+                      </div>
+                    )}
+                    
+                    {/* Smart Wallet Address */}
+                    {isInitializing ? (
+                      <div className="px-3 py-2 text-sm border-b border-white/10">
+                        <p className="text-xs text-muted-foreground">
+                          Inicializando smart wallet...
+                        </p>
+                      </div>
+                    ) : smartAccountAddress ? (
+                      <div className="px-3 py-2 text-sm border-b border-white/10 border-green-500/30">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-muted-foreground flex items-center space-x-2">
+                            <Shield className="w-4 h-4 text-green-500" />
+                            <span>Smart Wallet (ZeroDev):</span>
+                          </span>
+                          <button
+                            onClick={() => handleCopyAddress(smartAccountAddress, 'smart')}
+                            className="flex items-center space-x-1 text-xs hover:text-white transition-colors"
+                          >
+                            {copiedAddress === 'smart' ? (
+                              <>
+                                <Check className="w-3 h-3 text-green-400" />
+                                <span className="text-green-400">Copiado</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="w-3 h-3" />
+                                <span>Copiar</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                        <p className="font-mono text-xs break-all">
+                          {smartAccountAddress}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="px-3 py-2 text-sm border-b border-white/10">
+                        <p className="text-xs text-yellow-500">
+                          Smart wallet no disponible
+                        </p>
+                      </div>
+                    )}
+                    
                     <button
                       onClick={handleLogout}
                       className="w-full flex items-center space-x-2 px-3 py-2 text-sm hover:bg-white/15 rounded-xl transition-colors text-red-400"

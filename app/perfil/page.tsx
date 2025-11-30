@@ -17,6 +17,8 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import { useUIStore } from '@/lib/store'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
+import { identifyEmbeddedWallet } from '@/lib/wallet-utils'
 
 export default function PerfilPage() {
   const { role } = useUIStore()
@@ -25,9 +27,15 @@ export default function PerfilPage() {
   const { authenticated, user } = usePrivy()
   const { wallets } = useWallets()
   
-  // Get the primary wallet address
-  const primaryWallet = wallets.find(wallet => wallet.walletClientType === 'privy')
-  const userAddress = primaryWallet?.address || user?.wallet?.address
+  // ZeroDev smart wallet hook
+  const { smartAccountAddress, isInitializing } = useSmartAccount()
+  
+  // Get EOA (embedded wallet from Privy)
+  const embeddedWallet = identifyEmbeddedWallet(wallets)
+  const eoaAddress = embeddedWallet?.address
+  
+  // Get email from user
+  const userEmail = user?.email?.address || user?.google?.email || user?.twitter?.email || 'No disponible'
   const [isEditing, setIsEditing] = useState(false)
   const [profileData, setProfileData] = useState({
     displayName: 'Usuario MotusDAO',
@@ -94,15 +102,63 @@ export default function PerfilPage() {
                   <h2 className="text-2xl font-bold mb-2">{profileData.displayName}</h2>
                   <p className="text-muted-foreground mb-4 capitalize">{role}</p>
                   
-                  {/* Wallet Info */}
-                  {authenticated && userAddress && (
-                    <div className="mb-4 p-3 glass-card rounded-lg">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Wallet className="w-4 h-4 text-mauve-500" />
-                        <span className="text-sm font-mono">
-                          {userAddress.slice(0, 6)}...{userAddress.slice(-4)}
-                        </span>
+                  {/* Account Info */}
+                  {authenticated && (
+                    <div className="mb-4 space-y-3">
+                      {/* Email */}
+                      <div className="p-3 glass-card rounded-lg">
+                        <div className="flex items-center justify-center space-x-2 mb-1">
+                          <User className="w-4 h-4 text-mauve-500" />
+                          <span className="text-xs text-muted-foreground">Email</span>
+                        </div>
+                        <p className="text-sm font-mono text-center break-all">
+                          {userEmail}
+                        </p>
                       </div>
+                      
+                      {/* EOA Address */}
+                      {eoaAddress && (
+                        <div className="p-3 glass-card rounded-lg">
+                          <div className="flex items-center justify-center space-x-2 mb-1">
+                            <Wallet className="w-4 h-4 text-mauve-500" />
+                            <span className="text-xs text-muted-foreground">EOA (Privy)</span>
+                          </div>
+                          <p className="text-sm font-mono text-center">
+                            {eoaAddress.slice(0, 6)}...{eoaAddress.slice(-4)}
+                          </p>
+                          <p className="text-xs font-mono text-center text-muted-foreground mt-1 break-all">
+                            {eoaAddress}
+                          </p>
+                        </div>
+                      )}
+                      
+                      {/* Smart Wallet Address */}
+                      {isInitializing ? (
+                        <div className="p-3 glass-card rounded-lg">
+                          <p className="text-xs text-muted-foreground text-center">
+                            Inicializando smart wallet...
+                          </p>
+                        </div>
+                      ) : smartAccountAddress ? (
+                        <div className="p-3 glass-card rounded-lg border border-green-500/30">
+                          <div className="flex items-center justify-center space-x-2 mb-1">
+                            <Shield className="w-4 h-4 text-green-500" />
+                            <span className="text-xs text-muted-foreground">Smart Wallet (ZeroDev)</span>
+                          </div>
+                          <p className="text-sm font-mono text-center">
+                            {smartAccountAddress.slice(0, 6)}...{smartAccountAddress.slice(-4)}
+                          </p>
+                          <p className="text-xs font-mono text-center text-muted-foreground mt-1 break-all">
+                            {smartAccountAddress}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-3 glass-card rounded-lg border border-yellow-500/30">
+                          <p className="text-xs text-yellow-500 text-center">
+                            Smart wallet no disponible
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -166,11 +222,14 @@ export default function PerfilPage() {
                         <label className="block text-sm font-medium mb-2">Email</label>
                         <input
                           type="email"
-                          value={profileData.email}
+                          value={userEmail}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          disabled={!isEditing}
+                          disabled={true}
                           className="w-full p-3 glass-card border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-mauve-500 focus:border-transparent disabled:opacity-50"
                         />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Email gestionado por Privy
+                        </p>
                       </div>
                     </div>
 

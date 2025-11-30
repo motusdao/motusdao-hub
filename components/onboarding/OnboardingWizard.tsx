@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useOnboardingStore, getStepsForRole } from '@/lib/onboarding-store'
 import { WizardStepper } from './WizardStepper'
 import { StepConnect } from './steps/StepConnect'
+import { StepRoleSelection } from './steps/StepRoleSelection'
 import { StepPerfilUsuario } from './steps/StepPerfilUsuario'
 import { StepPerfilPSM } from './steps/StepPerfilPSM'
 import { StepRevision } from './steps/StepRevision'
@@ -12,28 +13,33 @@ import { StepBlockchain } from './steps/StepBlockchain'
 import { StepExito } from './steps/StepExito'
 
 interface OnboardingWizardProps {
-  role: 'usuario' | 'psm'
+  role?: 'usuario' | 'psm' // Optional now - will be selected in step 1
 }
 
-export function OnboardingWizard({ role }: OnboardingWizardProps) {
+export function OnboardingWizard({ role: initialRole }: OnboardingWizardProps) {
   const { 
     currentStep, 
     setCurrentStep, 
+    role,
     setRole, 
     isStepValid, 
     canProceed
     // reset // TODO: Add reset functionality when needed
   } = useOnboardingStore()
 
-  const steps = getStepsForRole(role)
+  // Get steps - role might not be set yet in step 0
+  const steps = role ? getStepsForRole(role) : getStepsForRole('usuario') // Default for step count
 
   useEffect(() => {
-    setRole(role)
+    // If initial role is provided, set it (for backward compatibility)
+    if (initialRole && !role) {
+      setRole(initialRole)
+    }
     // Reset to first step if needed
     if (currentStep >= steps.length) {
       setCurrentStep(0)
     }
-  }, [role, currentStep, steps.length, setRole, setCurrentStep])
+  }, [initialRole, role, currentStep, steps.length, setRole, setCurrentStep])
 
   const handleNext = () => {
     console.log('OnboardingWizard handleNext Debug:', {
@@ -78,19 +84,25 @@ export function OnboardingWizard({ role }: OnboardingWizardProps) {
         return <StepConnect onNext={handleNext} onBack={handleBack} />
       
       case 1:
-        if (role === 'usuario') {
-          return <StepPerfilUsuario onNext={handleNext} onBack={handleBack} />
-        } else {
-          return <StepPerfilPSM onNext={handleNext} onBack={handleBack} />
-        }
+        return <StepRoleSelection onNext={handleNext} onBack={handleBack} />
       
       case 2:
-        return <StepRevision onNext={handleNext} onBack={handleBack} />
+        if (role === 'usuario') {
+          return <StepPerfilUsuario onNext={handleNext} onBack={handleBack} />
+        } else if (role === 'psm') {
+          return <StepPerfilPSM onNext={handleNext} onBack={handleBack} />
+        } else {
+          // Should not happen, but fallback
+          return <StepRoleSelection onNext={handleNext} onBack={handleBack} />
+        }
       
       case 3:
-        return <StepBlockchain onNext={handleNext} onBack={handleBack} />
+        return <StepRevision onNext={handleNext} onBack={handleBack} />
       
       case 4:
+        return <StepBlockchain onNext={handleNext} onBack={handleBack} />
+      
+      case 5:
         return <StepExito onComplete={handleComplete} />
       
       default:
@@ -106,7 +118,7 @@ export function OnboardingWizard({ role }: OnboardingWizardProps) {
           <WizardStepper 
             steps={steps} 
             currentStep={currentStep} 
-            role={role}
+            role={role || 'usuario'}
             onStepClick={handleStepClick}
             isStepValid={isStepValid}
           />
@@ -136,7 +148,7 @@ export function OnboardingWizard({ role }: OnboardingWizardProps) {
               Paso {currentStep + 1} de {steps.length}
             </span>
             <span className="text-white font-medium">
-              {steps[currentStep]?.title}
+              {steps[currentStep]?.title || 'Paso'}
             </span>
           </div>
           <div className="mt-2 w-full bg-gray-700 rounded-full h-1">

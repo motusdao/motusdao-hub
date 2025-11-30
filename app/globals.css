@@ -593,6 +593,25 @@ body::after {
   text-transform: uppercase;
 }
 
+/* Fix Privy hydration error: allow block elements inside p tags */
+/* This fixes the issue where Privy renders <div> inside <p> tags */
+p[class*="HelpTextContainer"] {
+  display: block !important;
+}
+
+p[class*="HelpTextContainer"] > div {
+  display: block;
+}
+
+/* Ensure Privy modals don't cause hydration issues */
+[data-privy-modal] p {
+  display: block;
+}
+
+[data-privy-modal] p > div {
+  display: block;
+}
+
 /* Legacy glassmorphism utilities (for backward compatibility) */
 .glass-card {
   @apply glass;

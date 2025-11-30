@@ -39,60 +39,11 @@ export function StepRevision({ onNext, onBack }: StepRevisionProps) {
     return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
-  const handleSubmit = async () => {
-    try {
-      const endpoint = role === 'psm' ? '/api/onboarding/psm' : '/api/onboarding/user'
-      const payload = {
-        // Connection
-        email: data.email,
-        walletAddress: data.walletAddress,
-        privyId: data.privyId,
-        // Personal
-        nombre: data.nombre,
-        apellido: data.apellido,
-        telefono: data.telefono,
-        fechaNacimiento: data.fechaNacimiento,
-        ciudad: data.ciudad,
-        pais: data.pais,
-        // Role-specific
-        ...(role === 'usuario' ? {
-          tipoAtencion: data.tipoAtencion,
-          problematica: data.problematica,
-          preferenciaAsignacion: data.preferenciaAsignacion
-        } : {}),
-        ...(role === 'psm' ? {
-          cedulaProfesional: data.cedulaProfesional,
-          formacionAcademica: data.formacionAcademica,
-          experienciaAnios: data.experienciaAnios,
-          biografia: data.biografia,
-          especialidades: data.especialidades,
-          participaSupervision: data.participaSupervision,
-          participaCursos: data.participaCursos,
-          participaInvestigacion: data.participaInvestigacion,
-          participaComunidad: data.participaComunidad
-        } : {})
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        console.error('Onboarding submit failed:', err)
-        alert(err?.error || 'No se pudo completar el registro. Intenta nuevamente.')
-        return
-      }
-
-      onNext()
-    } catch (e) {
-      console.error('Onboarding submit error:', e)
-      alert('Ocurrió un error inesperado. Intenta nuevamente.')
-    }
+  // StepRevision no hace el submit - solo revisa la información
+  // El registro se hace en StepBlockchain después de crear el smart wallet
+  const handleContinue = () => {
+    // Just continue to next step (StepBlockchain will handle registration)
+    onNext()
   }
 
   return (
@@ -314,10 +265,10 @@ export function StepRevision({ onNext, onBack }: StepRevisionProps) {
           </button>
           
           <CTAButton
-            onClick={handleSubmit}
+            onClick={handleContinue}
             className="flex items-center space-x-2"
           >
-            <span>Continuar al registro</span>
+            <span>Continuar al registro en blockchain</span>
           </CTAButton>
         </div>
       </GlassCard>

@@ -42,20 +42,116 @@ export async function POST(request: NextRequest) {
           { email: validatedData.email },
           { walletAddress: validatedData.walletAddress }
         ]
+      },
+      include: {
+        profile: true,
+        psm: true
       }
     })
 
+    // If user exists, update their information instead of creating new
     if (existingUser) {
-      return NextResponse.json(
-        { 
-          error: 'Ya existe una cuenta con este correo o wallet. Inicia sesión o actualiza tu perfil.',
-          code: 'USER_EXISTS'
-        },
-        { status: 409 }
-      )
+      // Check if this is the same user trying to update their wallet (EOA -> smart wallet)
+      const isUpdatingWallet = existingUser.email === validatedData.email && 
+                                existingUser.walletAddress !== validatedData.walletAddress
+      
+      if (isUpdatingWallet) {
+        // Update wallet address (EOA -> smart wallet)
+        const result = await prisma.$transaction(async (tx) => {
+          const user = await tx.user.update({
+            where: { id: existingUser.id },
+            data: {
+              walletAddress: validatedData.walletAddress,
+              privyId: validatedData.privyId || existingUser.privyId
+            }
+          })
+
+          // Update profile if it exists
+          if (existingUser.profile) {
+            await tx.profile.update({
+              where: { userId: existingUser.id },
+              data: {
+                nombre: validatedData.nombre,
+                apellido: validatedData.apellido,
+                telefono: validatedData.telefono,
+                fechaNacimiento: new Date(validatedData.fechaNacimiento),
+                ciudad: validatedData.ciudad,
+                pais: validatedData.pais
+              }
+            })
+          } else {
+            await tx.profile.create({
+              data: {
+                userId: existingUser.id,
+                nombre: validatedData.nombre,
+                apellido: validatedData.apellido,
+                telefono: validatedData.telefono,
+                fechaNacimiento: new Date(validatedData.fechaNacimiento),
+                ciudad: validatedData.ciudad,
+                pais: validatedData.pais
+              }
+            })
+          }
+
+          // Update PSM profile if it exists
+          if (existingUser.psm) {
+            await tx.pSMProfile.update({
+              where: { userId: existingUser.id },
+              data: {
+                cedulaProfesional: validatedData.cedulaProfesional,
+                formacionAcademica: validatedData.formacionAcademica,
+                experienciaAnios: validatedData.experienciaAnios,
+                biografia: validatedData.biografia,
+                especialidades: JSON.stringify(validatedData.especialidades),
+                participaSupervision: validatedData.participaSupervision,
+                participaCursos: validatedData.participaCursos,
+                participaInvestigacion: validatedData.participaInvestigacion,
+                participaComunidad: validatedData.participaComunidad
+              }
+            })
+          } else {
+            await tx.pSMProfile.create({
+              data: {
+                userId: existingUser.id,
+                cedulaProfesional: validatedData.cedulaProfesional,
+                formacionAcademica: validatedData.formacionAcademica,
+                experienciaAnios: validatedData.experienciaAnios,
+                biografia: validatedData.biografia,
+                especialidades: JSON.stringify(validatedData.especialidades),
+                participaSupervision: validatedData.participaSupervision,
+                participaCursos: validatedData.participaCursos,
+                participaInvestigacion: validatedData.participaInvestigacion,
+                participaComunidad: validatedData.participaComunidad
+              }
+            })
+          }
+
+          return user
+        })
+
+        return NextResponse.json({
+          success: true,
+          message: 'Profesional actualizado exitosamente',
+          user: {
+            id: result.id,
+            role: result.role,
+            email: result.email,
+            walletAddress: result.walletAddress
+          }
+        }, { status: 200 })
+      } else {
+        // User exists with same email and wallet - might be duplicate registration
+        return NextResponse.json(
+          { 
+            error: 'Ya existe una cuenta con este correo o wallet. Inicia sesión o actualiza tu perfil.',
+            code: 'USER_EXISTS'
+          },
+          { status: 409 }
+        )
+      }
     }
 
-    // Create user and related records in a transaction
+    // Create new user and related records in a transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create user
       const user = await tx.user.create({

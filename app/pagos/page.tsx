@@ -16,6 +16,7 @@ import {
   Info
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import { TestGaslessTransaction } from '@/components/payments/TestGaslessTransaction'
 
 const paymentSteps = [
   {
@@ -176,11 +177,21 @@ export default function PagosPage() {
             </GlassCard>
           </motion.div>
 
-          {/* Current Status */}
+          {/* Test Gasless Transaction */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
+            className="mb-12"
+          >
+            <TestGaslessTransaction />
+          </motion.div>
+
+          {/* Current Status */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
             className="mb-12"
           >
             <GlassCard className="p-8">
@@ -191,14 +202,18 @@ export default function PagosPage() {
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Estado Actual del Sistema</h3>
                   <p className="text-muted-foreground mb-4">
-                    Actualmente, el sistema de pagos está en desarrollo. La integración con wallets 
-                    a través de Privy está activa, pero las funcionalidades de onramp y split de pagos 
-                    estarán disponibles en futuras actualizaciones.
+                    El sistema de pagos está configurado con Pimlico paymaster para gasless transactions.
+                    La integración con wallets a través de Privy está activa. Las funcionalidades de onramp 
+                    y split de pagos estarán disponibles en futuras actualizaciones.
                   </p>
                   <div className="space-y-2">
                     <div className="flex items-center space-x-2">
                       <CheckCircle className="w-4 h-4 text-green-500" />
                       <span className="text-sm">Conexión de wallet (Privy)</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <CheckCircle className="w-4 h-4 text-green-500" />
+                      <span className="text-sm">Pimlico Paymaster configurado (gasless transactions)</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Clock className="w-4 h-4 text-yellow-500" />
