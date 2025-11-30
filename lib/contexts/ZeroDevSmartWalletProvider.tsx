@@ -50,9 +50,29 @@ export function ZeroDevSmartWalletProvider({
   const [isInitializing, setIsInitializing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Log component mount and props
+  console.log('[ZERODEV] Provider mounted/updated:', {
+    hasProjectId: !!zeroDevProjectId,
+    projectId: zeroDevProjectId ? `${zeroDevProjectId.substring(0, 8)}...` : 'missing',
+    authenticated,
+    walletsCount: wallets?.length || 0,
+  })
+
   useEffect(() => {
+    console.log('[ZERODEV] ⚡ useEffect triggered')
     const initializeSmartWallet = async () => {
-      if (!authenticated || !wallets || wallets.length === 0) {
+      console.log('[ZERODEV] Effect triggered:', { authenticated, walletsCount: wallets?.length, wallets })
+      
+      if (!authenticated) {
+        console.log('[ZERODEV] Not authenticated, skipping initialization')
+        setKernelClient(null)
+        setSmartAccountAddress(null)
+        setIsInitializing(false)
+        return
+      }
+      
+      if (!wallets || wallets.length === 0) {
+        console.log('[ZERODEV] No wallets available yet, waiting...')
         setKernelClient(null)
         setSmartAccountAddress(null)
         setIsInitializing(false)
@@ -153,10 +173,14 @@ export function ZeroDevSmartWalletProvider({
         
         // ZeroDev Paymaster Configuration (Self-Funded)
         // Using selfFunded=true since you've deposited CELO directly to the paymaster contract
+        // Note: If this doesn't work, try without the parameter: 
+        // const paymasterUrl = `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}`
         const paymasterUrl = `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}?selfFunded=true`
         
         console.log('[ZERODEV] Creating ZeroDev paymaster client...')
+        console.log('[ZERODEV] Project ID:', zeroDevProjectId)
         console.log('[ZERODEV] Paymaster URL:', paymasterUrl.replace(zeroDevProjectId, '***'))
+        console.log('[ZERODEV] Chain ID:', FORCED_CHAIN.id)
         
         // Create ZeroDev paymaster client
         const paymasterClient = createZeroDevPaymasterClient({
@@ -186,12 +210,18 @@ export function ZeroDevSmartWalletProvider({
         setSmartAccountAddress(account.address)
       } catch (err) {
         console.error("[ZERODEV] ❌ Error initializing smart wallet:", err)
+        console.error("[ZERODEV] Error details:", {
+          message: err instanceof Error ? err.message : String(err),
+          stack: err instanceof Error ? err.stack : undefined,
+          name: err instanceof Error ? err.name : undefined,
+        })
         setError(err instanceof Error ? err.message : "Unknown error")
       } finally {
         setIsInitializing(false)
       }
     }
 
+    // Always try to initialize - the function will handle missing dependencies
     initializeSmartWallet()
   }, [authenticated, wallets, zeroDevProjectId])
 
