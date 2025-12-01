@@ -834,12 +834,12 @@ export default function PerfilPage() {
                         <div className="space-y-4">
                           <div className="flex items-center justify-between mb-4">
                             <p className="text-sm text-muted-foreground">
-                              {matchData.activeMatches.length} de {matchData.capacity.max} usuarios activos
+                              {matchData.activeMatches.length} de {(matchData.capacity?.max ?? 10)} usuarios activos
                             </p>
                             <div className="w-32 h-2 bg-white/10 rounded-full overflow-hidden">
                               <div 
                                 className="h-full bg-gradient-mauve transition-all"
-                                style={{ width: `${(matchData.activeMatches.length / matchData.capacity.max) * 100}%` }}
+                                style={{ width: `${(matchData.activeMatches.length / (matchData.capacity?.max ?? 10)) * 100}%` }}
                               />
                             </div>
                           </div>
