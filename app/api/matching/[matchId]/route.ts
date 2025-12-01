@@ -9,10 +9,10 @@ import { prisma } from '@/lib/prisma'
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { matchId: string } }
+  { params }: { params: Promise<{ matchId: string }> }
 ) {
   try {
-    const { matchId } = params
+    const { matchId } = await params
     const body = await request.json()
     const { status, reason } = body
 
