@@ -11,7 +11,7 @@ async function main() {
     update: {},
     create: {
       email: 'usuario@motusdao.com',
-      walletAddress: '0x1234567890123456789012345678901234567890',
+      eoaAddress: '0x1234567890123456789012345678901234567890',
       privyId: 'privy_user_1',
       role: 'usuario'
     }
@@ -22,7 +22,7 @@ async function main() {
     update: {},
     create: {
       email: 'psm@motusdao.com',
-      walletAddress: '0x0987654321098765432109876543210987654321',
+      eoaAddress: '0x0987654321098765432109876543210987654321',
       privyId: 'privy_psm_1',
       role: 'psm'
     }

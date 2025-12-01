@@ -3,12 +3,11 @@
 import { useState } from 'react'
 import { useWallets, usePrivy } from '@privy-io/react-auth'
 import { parseEther } from 'viem'
-import { celoMainnet } from '@/lib/celo'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
 import { Loader, CheckCircle, AlertCircle, ExternalLink } from 'lucide-react'
 import { getCeloExplorerUrl } from '@/lib/celo'
-import { getPrimaryWallet, identifySmartWallet, identifyEmbeddedWallet, verifySmartWallet } from '@/lib/wallet-utils'
+import { getPrimaryWallet, identifyEmbeddedWallet, verifySmartWallet } from '@/lib/wallet-utils'
 import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
 
 type TransactionStatus = 'idle' | 'preparing' | 'sending' | 'success' | 'error'

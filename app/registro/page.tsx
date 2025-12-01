@@ -9,7 +9,7 @@ import { useOnboardingStore } from '@/lib/onboarding-store'
 export default function RegistroPage() {
   const router = useRouter()
   const { authenticated, ready } = usePrivy()
-  const { isCompleted, currentStep } = useOnboardingStore()
+  const { isCompleted } = useOnboardingStore()
 
   // Redirect to home if registration is already completed
   useEffect(() => {
@@ -21,14 +21,6 @@ export default function RegistroPage() {
       return () => clearTimeout(timer)
     }
   }, [ready, authenticated, isCompleted, router])
-
-  // Handle completion - StepExito will mark as completed and redirect
-  const handleComplete = () => {
-    // Redirect after a short delay to show success message
-    setTimeout(() => {
-      router.push('/')
-    }, 2000)
-  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
@@ -51,7 +52,7 @@ export default function PerfilPage() {
   const { wallets } = useWallets()
   
   // ZeroDev smart wallet hook
-  const { smartAccountAddress, isInitializing } = useSmartAccount()
+  const { smartAccountAddress } = useSmartAccount()
   
   // Get EOA (embedded wallet from Privy)
   const embeddedWallet = identifyEmbeddedWallet(wallets)
@@ -159,7 +160,7 @@ export default function PerfilPage() {
         throw new Error(errorData.error || 'Error al guardar el perfil')
       }
 
-      const result = await response.json()
+      await response.json()
       setIsEditing(false)
       // Optionally show success message
     } catch (err) {
@@ -327,7 +328,13 @@ export default function PerfilPage() {
                       {isUploadingAvatar ? (
                         <Loader className="w-8 h-8 text-white animate-spin" />
                       ) : profileData.avatarUrl ? (
-                        <img src={profileData.avatarUrl} alt={displayName} className="w-32 h-32 rounded-full object-cover" />
+                        <Image 
+                          src={profileData.avatarUrl} 
+                          alt={displayName} 
+                          width={128}
+                          height={128}
+                          className="w-32 h-32 rounded-full object-cover" 
+                        />
                       ) : (
                         <User className="w-16 h-16 text-white" />
                       )}

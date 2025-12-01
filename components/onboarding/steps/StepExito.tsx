@@ -41,6 +41,7 @@ export function StepExito({ onComplete }: StepExitoProps) {
       }, 100)
       return () => clearTimeout(timer)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Empty dependency array - only run once on mount
 
   // Removed automatic reset - let user stay on success page

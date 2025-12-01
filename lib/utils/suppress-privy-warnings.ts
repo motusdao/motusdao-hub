@@ -14,7 +14,7 @@ if (typeof window !== 'undefined') {
   if (isDevelopment) {
     const originalError = console.error;
     
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
       // Suppress the specific Privy hydration warning
       const firstArg = args[0];
       
@@ -25,7 +25,12 @@ if (typeof window !== 'undefined') {
           firstArg.includes('cannot appear as a descendant of <p>') ||
           firstArg.includes('HelpTextContainer') ||
           firstArg.includes('validateDOMNesting'))) ||
-        (firstArg?.props?.children && 
+        (typeof firstArg === 'object' &&
+         firstArg !== null &&
+         'props' in firstArg &&
+         typeof firstArg.props === 'object' &&
+         firstArg.props !== null &&
+         'children' in firstArg.props &&
          typeof firstArg.props.children === 'string' &&
          firstArg.props.children.includes('HelpTextContainer'));
       

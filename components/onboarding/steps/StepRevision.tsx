@@ -84,7 +84,7 @@ export function StepRevision({ onNext, onBack }: StepRevisionProps) {
                   <Wallet className="w-4 h-4 text-purple-400" />
                   <span className="text-sm font-medium">Wallet</span>
                 </div>
-                <p className="text-white font-mono">{formatAddress(data.walletAddress || '')}</p>
+                <p className="text-white font-mono">{formatAddress(data.smartWalletAddress || data.eoaAddress || '')}</p>
               </div>
             </div>
           </div>

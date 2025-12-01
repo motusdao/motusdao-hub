@@ -20,7 +20,7 @@ export async function GET() {
 
     // Get counts
     const totalUsers = await prisma.user.count()
-    // walletAddress is required, so all users should have one
+    // eoaAddress is required, so all users should have one
     const usersWithWallets = totalUsers
     const usersWithProfiles = await prisma.user.count({
       where: {
@@ -44,7 +44,7 @@ export async function GET() {
     // Smart wallets are usually longer than EOA addresses, but both are 42 chars
     // We can't easily distinguish, but we can check if they exist
     const usersWithSmartWallets = users.filter(u => 
-      u.walletAddress && u.walletAddress.startsWith('0x') && u.walletAddress.length === 42
+      u.smartWalletAddress && u.smartWalletAddress.startsWith('0x') && u.smartWalletAddress.length === 42
     ).length
 
     return NextResponse.json({
@@ -62,7 +62,8 @@ export async function GET() {
       users: users.map(user => ({
         id: user.id,
         email: user.email,
-        walletAddress: user.walletAddress,
+        eoaAddress: user.eoaAddress,
+        smartWalletAddress: user.smartWalletAddress,
         privyId: user.privyId,
         role: user.role,
         hasProfile: !!user.profile,
