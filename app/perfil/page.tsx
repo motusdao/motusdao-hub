@@ -786,29 +786,32 @@ export default function PerfilPage() {
                                 Historial de Emparejamientos
                               </h4>
                               <div className="space-y-2">
-                                {matchData.matchHistory.map((match) => (
-                                  <div key={match.id} className="p-4 glass-card rounded-lg">
-                                    <div className="flex items-center justify-between">
-                                      <div>
-                                        <p className="font-medium">
-                                          {match.psm.nombre} {match.psm.apellido}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                          {new Date(match.matchedAt).toLocaleDateString('es-ES')} - 
-                                          {match.endedAt ? new Date(match.endedAt).toLocaleDateString('es-ES') : 'Activo'}
-                                        </p>
+                                {matchData.matchHistory.map((match) => {
+                                  const userMatch = match as UserMatchHistoryItem
+                                  return (
+                                    <div key={userMatch.id} className="p-4 glass-card rounded-lg">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="font-medium">
+                                            {userMatch.psm.nombre} {userMatch.psm.apellido}
+                                          </p>
+                                          <p className="text-xs text-muted-foreground">
+                                            {new Date(userMatch.matchedAt).toLocaleDateString('es-ES')} - 
+                                            {userMatch.endedAt ? new Date(userMatch.endedAt).toLocaleDateString('es-ES') : 'Activo'}
+                                          </p>
+                                        </div>
+                                        <span className={`px-2 py-1 text-xs rounded-full ${
+                                          userMatch.status === 'ended' ? 'bg-red-500/20 text-red-400' :
+                                          userMatch.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+                                          'bg-green-500/20 text-green-400'
+                                        }`}>
+                                          {userMatch.status === 'ended' ? 'Finalizado' :
+                                           userMatch.status === 'paused' ? 'Pausado' : 'Activo'}
+                                        </span>
                                       </div>
-                                      <span className={`px-2 py-1 text-xs rounded-full ${
-                                        match.status === 'ended' ? 'bg-red-500/20 text-red-400' :
-                                        match.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
-                                        'bg-green-500/20 text-green-400'
-                                      }`}>
-                                        {match.status === 'ended' ? 'Finalizado' :
-                                         match.status === 'paused' ? 'Pausado' : 'Activo'}
-                                      </span>
                                     </div>
-                                  </div>
-                                ))}
+                                  )
+                                })}
                               </div>
                             </div>
                           )}
