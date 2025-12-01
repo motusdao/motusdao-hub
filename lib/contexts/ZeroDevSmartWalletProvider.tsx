@@ -175,10 +175,11 @@ export function ZeroDevSmartWalletProvider({
         
         // ZeroDev Paymaster Configuration
         // Self-Funded Mode: Requires CELO deposit to paymaster contract on Celo Mainnet
-        // The paymaster URL must include the chain ID (42220) for self-funded mode
+        // Note: The chain ID might not be needed in the URL - ZeroDev determines it from the chain parameter
         const useSelfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
+        // Try without chain ID in URL first - ZeroDev should determine chain from the chain parameter
         const paymasterUrl = useSelfFunded
-          ? `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}?selfFunded=true`
+          ? `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}?selfFunded=true`
           : `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}`
         
         console.log('[ZERODEV] ⚙️ Configuration:', {

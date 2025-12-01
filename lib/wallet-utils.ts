@@ -63,11 +63,14 @@ export function identifySmartWallet(wallets: ConnectedWallet[]): ConnectedWallet
     }
   }
   
-  // If only one wallet and it's NOT the embedded pattern, it might be the smart wallet
-  // (This can happen if smart wallet is created first or if detection is delayed)
-  if (privyWallets.length === 1 && !privyWallets[0].address?.toLowerCase().startsWith('0x1f93')) {
-    console.log('⚠️ Only one wallet found, not embedded pattern (might be smart wallet):', privyWallets[0].address)
-    return privyWallets[0]
+  // If only one wallet, check if it's actually a smart wallet (contract) or embedded wallet (EOA)
+  // We can't determine this just from the address pattern, so we return null
+  // The smart wallet should be created separately by ZeroDev, not by Privy
+  if (privyWallets.length === 1) {
+    // If there's only one Privy wallet, it's likely the embedded wallet (EOA)
+    // The smart wallet will be created by ZeroDev separately
+    console.log('ℹ️ Only one Privy wallet found - this is likely the embedded wallet (EOA). Smart wallet will be created by ZeroDev.')
+    return null // Smart wallet is created by ZeroDev, not Privy
   }
   
   console.log('❌ Smart wallet not found. Only embedded wallet or no wallets detected.')
@@ -79,6 +82,8 @@ export function identifySmartWallet(wallets: ConnectedWallet[]): ConnectedWallet
  * 
  * Embedded wallets are Externally Owned Accounts created by Privy.
  * They typically have addresses starting with 0x1F93... (Privy's deterministic prefix).
+ * However, if there's only one Privy wallet and it doesn't match the pattern,
+ * it's likely the embedded wallet (Privy may use different prefixes).
  * 
  * @param wallets - Array of Privy wallets (ConnectedWallet[])
  * @returns The embedded wallet if found, null otherwise
@@ -86,12 +91,32 @@ export function identifySmartWallet(wallets: ConnectedWallet[]): ConnectedWallet
 export function identifyEmbeddedWallet(wallets: ConnectedWallet[]): ConnectedWallet | null {
   const privyWallets = wallets.filter(wallet => wallet.walletClientType === 'privy')
   
-  // Embedded wallets typically have addresses starting with 0x1F93... (Privy's deterministic prefix)
-  const embeddedWallet = privyWallets.find(wallet => 
+  if (privyWallets.length === 0) {
+    return null
+  }
+  
+  // First, try to find wallet with the typical Privy prefix (0x1F93...)
+  const typicalEmbeddedWallet = privyWallets.find(wallet => 
     wallet.address?.toLowerCase().startsWith('0x1f93')
   )
   
-  return embeddedWallet || null
+  if (typicalEmbeddedWallet) {
+    return typicalEmbeddedWallet
+  }
+  
+  // If no wallet matches the typical pattern, but we have Privy wallets:
+  // - If there's only one Privy wallet, it's likely the embedded wallet (EOA)
+  // - If there are multiple, the embedded wallet is usually the first one or the one that's not a smart wallet
+  // Smart wallets are contract accounts, so they won't match the 0x1f93 pattern
+  // For now, if there's only one Privy wallet, assume it's the embedded wallet
+  if (privyWallets.length === 1) {
+    console.log('ℹ️ Only one Privy wallet found, assuming it\'s the embedded wallet (EOA):', privyWallets[0].address)
+    return privyWallets[0]
+  }
+  
+  // If multiple Privy wallets, return the first one (typically the embedded wallet)
+  // The smart wallet would be identified separately
+  return privyWallets[0] || null
 }
 
 /**
