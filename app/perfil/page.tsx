@@ -82,7 +82,75 @@ export default function PerfilPage() {
     avatarUrl: ''
   })
   const [userData, setUserData] = useState<UserData | null>(null)
-  const [matchData, setMatchData] = useState<any>(null)
+  
+  interface MatchHistoryItem {
+    id: string
+    psmId: string
+    status: string
+    matchedAt: string
+    endedAt?: string | null
+    reason?: string | null
+    psm: {
+      nombre?: string
+      apellido?: string
+    }
+  }
+
+  interface ActiveMatch {
+    id: string
+    psmId: string
+    status: string
+    matchedAt: string
+    psm: {
+      id: string
+      email: string
+      nombre?: string
+      apellido?: string
+      telefono?: string
+      ciudad?: string
+      pais?: string
+      avatarUrl?: string
+      biografia?: string
+      especialidades?: string
+      experienciaAnios?: number
+      smartWalletAddress?: string | null
+      eoaAddress?: string
+    }
+  }
+
+  interface PSMActiveMatch {
+    id: string
+    userId: string
+    status: string
+    matchedAt: string
+    user: {
+      id: string
+      email: string
+      nombre?: string
+      apellido?: string
+      telefono?: string
+      ciudad?: string
+      pais?: string
+      avatarUrl?: string
+      problematica?: string
+      tipoAtencion?: string
+      smartWalletAddress?: string | null
+      eoaAddress?: string
+    }
+  }
+
+  interface MatchData {
+    activeMatch?: ActiveMatch | null
+    activeMatches?: PSMActiveMatch[]
+    matchHistory?: MatchHistoryItem[]
+    capacity?: {
+      current: number
+      max: number
+      available: number
+    }
+  }
+
+  const [matchData, setMatchData] = useState<MatchData | null>(null)
   const [isLoadingMatch, setIsLoadingMatch] = useState(false)
 
   // Fetch profile data from API
@@ -705,7 +773,7 @@ export default function PerfilPage() {
                                 Historial de Emparejamientos
                               </h4>
                               <div className="space-y-2">
-                                {matchData.matchHistory.map((match: any) => (
+                                {matchData.matchHistory.map((match) => (
                                   <div key={match.id} className="p-4 glass-card rounded-lg">
                                     <div className="flex items-center justify-between">
                                       <div>
@@ -751,7 +819,7 @@ export default function PerfilPage() {
                                   const error = await response.json()
                                   setError(error.error || 'Error al crear emparejamiento')
                                 }
-                              } catch (err) {
+                              } catch {
                                 setError('Error al crear emparejamiento')
                               }
                             }
@@ -777,7 +845,7 @@ export default function PerfilPage() {
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {matchData.activeMatches.map((match: any) => (
+                            {matchData.activeMatches.map((match) => (
                               <div key={match.id} className="p-4 glass-card rounded-lg border border-white/10">
                                 <div className="flex items-start justify-between mb-3">
                                   <div className="flex items-center space-x-3">
@@ -825,7 +893,7 @@ export default function PerfilPage() {
                                 Historial de Emparejamientos
                               </h4>
                               <div className="space-y-2">
-                                {matchData.matchHistory.map((match: any) => (
+                                {matchData.matchHistory.map((match) => (
                                   <div key={match.id} className="p-4 glass-card rounded-lg">
                                     <div className="flex items-center justify-between">
                                       <div>

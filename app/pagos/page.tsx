@@ -68,13 +68,31 @@ const features = [
   }
 ]
 
+interface PaymentPreferenceData {
+  id: string
+  userId: string
+  defaultDestination: 'own_wallet' | 'matched_psm' | 'dao_treasury'
+  hasMatchedPSM: boolean
+  matchedPSM: {
+    id: string
+    smartWalletAddress: string | null
+  } | null
+}
+
+interface UserData {
+  id: string
+  email: string
+  role: string
+  smartWalletAddress?: string | null
+}
+
 export default function PagosPage() {
   const { authenticated, user, ready } = usePrivy()
   const { smartAccountAddress } = useSmartAccount()
-  const [paymentPreference, setPaymentPreference] = useState<any>(null)
+  const [paymentPreference, setPaymentPreference] = useState<PaymentPreferenceData | null>(null)
   const [isLoadingPreference, setIsLoadingPreference] = useState(false)
   const [isSavingPreference, setIsSavingPreference] = useState(false)
-  const [userData, setUserData] = useState<any>(null)
+  const [userData, setUserData] = useState<UserData | null>(null)
 
   const userEmail = user?.email?.address || user?.google?.email
   const privyId = user?.id

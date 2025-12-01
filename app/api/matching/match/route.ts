@@ -125,7 +125,7 @@ export async function POST(request: NextRequest) {
               score += 5
             }
           })
-        } catch (e) {
+        } catch {
           // If JSON parsing fails, skip this scoring
         }
       }
