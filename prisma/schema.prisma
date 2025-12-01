@@ -15,6 +15,18 @@ enum Role {
   psm
 }
 
+enum MatchStatus {
+  active
+  paused
+  ended
+}
+
+enum PaymentDestination {
+  own_wallet
+  matched_psm
+  dao_treasury
+}
+
 model User {
   id                    String   @id @default(cuid())
   role                  Role     @default(usuario)
@@ -33,6 +45,11 @@ model User {
   journalEntries JournalEntry[]
   enrollments    Enrollment[]
   contactMessages ContactMessage[]
+  userMatches    Match[]  @relation("UserMatches")
+  psmMatches     Match[]  @relation("PSMMatches")
+  paymentPreference PaymentPreference?
+  paymentsSent   PaymentLog[] @relation("UserPayments")
+  paymentsReceived PaymentLog[] @relation("PSMPayments")
 
   @@map("users")
 }
@@ -169,4 +186,60 @@ model Enrollment {
 
   @@unique([userId, courseId])
   @@map("enrollments")
+}
+
+model Match {
+  id              String      @id @default(cuid())
+  userId          String      // usuario (patient)
+  psmId           String      // psm (psychologist)
+  status          MatchStatus @default(active)
+  matchedAt       DateTime    @default(now())
+  endedAt         DateTime?
+  reason          String?     // Reason for ending (optional)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  // Relations
+  user            User        @relation("UserMatches", fields: [userId], references: [id], onDelete: Cascade)
+  psm             User        @relation("PSMMatches", fields: [psmId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, psmId])
+  @@index([userId, status])
+  @@index([psmId, status])
+  @@map("matches")
+}
+
+model PaymentPreference {
+  id              String              @id @default(cuid())
+  userId          String              @unique
+  defaultDestination PaymentDestination @default(own_wallet)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment_preferences")
+}
+
+model PaymentLog {
+  id              String              @id @default(cuid())
+  fromUserId      String              // User who sent the payment
+  toUserId        String?             // PSM who received (if matched_psm)
+  destination     PaymentDestination
+  destinationAddress String           // Actual address funds went to
+  amount          String              // Amount in wei or token units
+  currency        String              // "CELO", "cUSD", "cEUR"
+  transactionHash String              @unique
+  explorerUrl     String?
+  notes           String?             // Optional notes
+  createdAt       DateTime            @default(now())
+
+  // Relations
+  fromUser        User                @relation("UserPayments", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser          User?               @relation("PSMPayments", fields: [toUserId], references: [id], onDelete: SetNull)
+
+  @@index([fromUserId, createdAt])
+  @@index([toUserId, createdAt])
+  @@index([destination])
+  @@map("payment_logs")
 }

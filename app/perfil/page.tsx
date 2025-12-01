@@ -14,7 +14,10 @@ import {
   Wallet,
   Settings,
   Loader,
-  AlertCircle
+  AlertCircle,
+  Users,
+  Heart,
+  Calendar
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
@@ -79,6 +82,8 @@ export default function PerfilPage() {
     avatarUrl: ''
   })
   const [userData, setUserData] = useState<UserData | null>(null)
+  const [matchData, setMatchData] = useState<any>(null)
+  const [isLoadingMatch, setIsLoadingMatch] = useState(false)
 
   // Fetch profile data from API
   useEffect(() => {
@@ -133,6 +138,34 @@ export default function PerfilPage() {
 
     fetchProfile()
   }, [ready, authenticated, userEmail, privyId])
+
+  // Fetch match data
+  useEffect(() => {
+    const fetchMatchData = async () => {
+      if (!userData?.id) return
+
+      setIsLoadingMatch(true)
+      try {
+        const endpoint = userData.role === 'usuario' 
+          ? `/api/matching/user/${userData.id}`
+          : `/api/matching/psm/${userData.id}`
+        
+        const response = await fetch(endpoint)
+        if (response.ok) {
+          const data = await response.json()
+          setMatchData(data)
+        }
+      } catch (err) {
+        console.error('Error fetching match data:', err)
+      } finally {
+        setIsLoadingMatch(false)
+      }
+    }
+
+    if (userData?.id) {
+      fetchMatchData()
+    }
+  }, [userData?.id, userData?.role])
 
   const handleSave = async () => {
     if (!userData?.id) {
@@ -576,11 +609,265 @@ export default function PerfilPage() {
                 </GlassCard>
               </motion.div>
 
+              {/* Match Information */}
+              {(userData?.role === 'usuario' || userData?.role === 'psm') && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                  className="mt-8"
+                >
+                  <GlassCard className="p-8">
+                    <h3 className="text-2xl font-bold mb-6 flex items-center">
+                      <Heart className="w-6 h-6 mr-3 text-mauve-500" />
+                      {userData.role === 'usuario' ? 'Mi Profesional' : 'Mis Usuarios'}
+                    </h3>
+
+                    {isLoadingMatch ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader className="w-6 h-6 animate-spin text-mauve-500" />
+                      </div>
+                    ) : userData.role === 'usuario' ? (
+                      // User view: Show matched PSM
+                      matchData?.activeMatch ? (
+                        <div className="space-y-4">
+                          <div className="p-6 glass-card rounded-lg border border-green-500/30">
+                            <div className="flex items-start justify-between mb-4">
+                              <div className="flex items-center space-x-3">
+                                <div className="w-12 h-12 bg-gradient-to-r from-mauve-500 to-iris-500 rounded-full flex items-center justify-center">
+                                  <User className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                  <h4 className="font-semibold text-lg">
+                                    {matchData.activeMatch.psm.nombre} {matchData.activeMatch.psm.apellido}
+                                  </h4>
+                                  <p className="text-sm text-muted-foreground">Profesional de Salud Mental</p>
+                                </div>
+                              </div>
+                              <span className="px-3 py-1 bg-green-500/20 text-green-400 text-sm rounded-full">
+                                Activo
+                              </span>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Especialidades</p>
+                                <p className="text-sm">
+                                  {matchData.activeMatch.psm.especialidades 
+                                    ? (() => {
+                                        try {
+                                          const esp = JSON.parse(matchData.activeMatch.psm.especialidades)
+                                          return Array.isArray(esp) ? esp.join(', ') : matchData.activeMatch.psm.especialidades
+                                        } catch {
+                                          return matchData.activeMatch.psm.especialidades
+                                        }
+                                      })()
+                                    : 'No especificadas'}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Experiencia</p>
+                                <p className="text-sm">{matchData.activeMatch.psm.experienciaAnios} años</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Ubicación</p>
+                                <p className="text-sm">{matchData.activeMatch.psm.ciudad}, {matchData.activeMatch.psm.pais}</p>
+                              </div>
+                              <div>
+                                <p className="text-xs text-muted-foreground mb-1">Emparejado desde</p>
+                                <p className="text-sm">
+                                  {new Date(matchData.activeMatch.matchedAt).toLocaleDateString('es-ES')}
+                                </p>
+                              </div>
+                            </div>
+
+                            {matchData.activeMatch.psm.biografia && (
+                              <div className="mt-4 pt-4 border-t border-white/10">
+                                <p className="text-xs text-muted-foreground mb-2">Biografía</p>
+                                <p className="text-sm">{matchData.activeMatch.psm.biografia}</p>
+                              </div>
+                            )}
+
+                            {matchData.activeMatch.psm.smartWalletAddress && (
+                              <div className="mt-4 pt-4 border-t border-white/10">
+                                <p className="text-xs text-muted-foreground mb-2">Wallet del Profesional</p>
+                                <p className="text-sm font-mono break-all">
+                                  {matchData.activeMatch.psm.smartWalletAddress}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+
+                          {matchData.matchHistory && matchData.matchHistory.length > 0 && (
+                            <div className="mt-6">
+                              <h4 className="font-semibold mb-3 flex items-center">
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Historial de Emparejamientos
+                              </h4>
+                              <div className="space-y-2">
+                                {matchData.matchHistory.map((match: any) => (
+                                  <div key={match.id} className="p-4 glass-card rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <p className="font-medium">
+                                          {match.psm.nombre} {match.psm.apellido}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {new Date(match.matchedAt).toLocaleDateString('es-ES')} - 
+                                          {match.endedAt ? new Date(match.endedAt).toLocaleDateString('es-ES') : 'Activo'}
+                                        </p>
+                                      </div>
+                                      <span className={`px-2 py-1 text-xs rounded-full ${
+                                        match.status === 'ended' ? 'bg-red-500/20 text-red-400' :
+                                        match.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+                                        'bg-green-500/20 text-green-400'
+                                      }`}>
+                                        {match.status === 'ended' ? 'Finalizado' :
+                                         match.status === 'paused' ? 'Pausado' : 'Activo'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground mb-4">No tienes un profesional emparejado</p>
+                          <CTAButton onClick={async () => {
+                            if (userData?.id) {
+                              try {
+                                const response = await fetch('/api/matching/match', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ userId: userData.id })
+                                })
+                                if (response.ok) {
+                                  const data = await response.json()
+                                  setMatchData({ activeMatch: data.match, matchHistory: [] })
+                                } else {
+                                  const error = await response.json()
+                                  setError(error.error || 'Error al crear emparejamiento')
+                                }
+                              } catch (err) {
+                                setError('Error al crear emparejamiento')
+                              }
+                            }
+                          }}>
+                            Buscar Profesional
+                          </CTAButton>
+                        </div>
+                      )
+                    ) : (
+                      // PSM view: Show matched users
+                      matchData?.activeMatches ? (
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between mb-4">
+                            <p className="text-sm text-muted-foreground">
+                              {matchData.activeMatches.length} de {matchData.capacity.max} usuarios activos
+                            </p>
+                            <div className="w-32 h-2 bg-white/10 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-mauve transition-all"
+                                style={{ width: `${(matchData.activeMatches.length / matchData.capacity.max) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {matchData.activeMatches.map((match: any) => (
+                              <div key={match.id} className="p-4 glass-card rounded-lg border border-white/10">
+                                <div className="flex items-start justify-between mb-3">
+                                  <div className="flex items-center space-x-3">
+                                    <div className="w-10 h-10 bg-gradient-to-r from-mauve-500 to-iris-500 rounded-full flex items-center justify-center">
+                                      <User className="w-5 h-5 text-white" />
+                                    </div>
+                                    <div>
+                                      <h4 className="font-semibold">
+                                        {match.user.nombre} {match.user.apellido}
+                                      </h4>
+                                      <p className="text-xs text-muted-foreground">{match.user.email}</p>
+                                    </div>
+                                  </div>
+                                  <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded-full">
+                                    Activo
+                                  </span>
+                                </div>
+                                
+                                <div className="space-y-2 text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground">Problema: </span>
+                                    <span>{match.user.problematica}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Tipo de atención: </span>
+                                    <span>{match.user.tipoAtencion}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Ubicación: </span>
+                                    <span>{match.user.ciudad}, {match.user.pais}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Desde: </span>
+                                    <span>{new Date(match.matchedAt).toLocaleDateString('es-ES')}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {matchData.matchHistory && matchData.matchHistory.length > 0 && (
+                            <div className="mt-6">
+                              <h4 className="font-semibold mb-3 flex items-center">
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Historial de Emparejamientos
+                              </h4>
+                              <div className="space-y-2">
+                                {matchData.matchHistory.map((match: any) => (
+                                  <div key={match.id} className="p-4 glass-card rounded-lg">
+                                    <div className="flex items-center justify-between">
+                                      <div>
+                                        <p className="font-medium">
+                                          {match.user.nombre} {match.user.apellido}
+                                        </p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {new Date(match.matchedAt).toLocaleDateString('es-ES')} - 
+                                          {match.endedAt ? new Date(match.endedAt).toLocaleDateString('es-ES') : 'Activo'}
+                                        </p>
+                                      </div>
+                                      <span className={`px-2 py-1 text-xs rounded-full ${
+                                        match.status === 'ended' ? 'bg-red-500/20 text-red-400' :
+                                        match.status === 'paused' ? 'bg-yellow-500/20 text-yellow-400' :
+                                        'bg-green-500/20 text-green-400'
+                                      }`}>
+                                        {match.status === 'ended' ? 'Finalizado' :
+                                         match.status === 'paused' ? 'Pausado' : 'Activo'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8">
+                          <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">No tienes usuarios emparejados</p>
+                        </div>
+                      )
+                    )}
+                  </GlassCard>
+                </motion.div>
+              )}
+
               {/* Settings */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.8, delay: 0.4 }}
+                transition={{ duration: 0.8, delay: 0.5 }}
                 className="mt-8"
               >
                 <GlassCard className="p-8">

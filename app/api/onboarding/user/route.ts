@@ -204,6 +204,11 @@ export async function POST(request: NextRequest) {
       return user
     })
 
+    // Trigger automatic matching if user prefers automatic assignment
+    // Note: This is done asynchronously after registration completes
+    // The matching will happen when the user visits their profile or when explicitly requested
+    // We don't block registration on matching success
+
     return NextResponse.json({
       success: true,
       message: 'Usuario registrado exitosamente',
