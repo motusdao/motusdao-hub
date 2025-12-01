@@ -3,6 +3,8 @@
 import { PrivyProvider } from '@privy-io/react-auth'
 import { ReactNode } from 'react'
 import { ZeroDevSmartWalletProvider } from '@/lib/contexts/ZeroDevSmartWalletProvider'
+// Suppress Privy hydration warnings in development
+import '@/lib/utils/suppress-privy-warnings'
 
 interface PrivyProviderWrapperProps {
   children: ReactNode

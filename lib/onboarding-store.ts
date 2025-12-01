@@ -7,7 +7,8 @@ export type UserRole = 'usuario' | 'psm'
 export interface OnboardingData {
   // Paso 1: Conexión
   email: string
-  walletAddress: string
+  eoaAddress: string
+  smartWalletAddress?: string
   privyId?: string
   celoChainId?: number
   walletType?: 'embedded' | 'external' | 'smart-wallet'
@@ -59,7 +60,8 @@ interface OnboardingState {
 
 const initialData: Partial<OnboardingData> = {
   email: '',
-  walletAddress: '',
+  eoaAddress: '',
+  smartWalletAddress: '',
   nombre: '',
   apellido: '',
   telefono: '',
@@ -104,7 +106,7 @@ export const useOnboardingStore = create<OnboardingState>()(
           step,
           data: {
             email: data.email,
-            walletAddress: data.walletAddress,
+            eoaAddress: data.eoaAddress,
             nombre: data.nombre,
             apellido: data.apellido
           },
@@ -113,7 +115,7 @@ export const useOnboardingStore = create<OnboardingState>()(
         
         switch (step) {
           case 0: // Conexión (email login)
-            return !!(data.walletAddress && data.email)
+            return !!(data.eoaAddress && data.email)
           
           case 1: // Selección de rol
             return !!role // Role must be selected

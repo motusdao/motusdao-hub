@@ -40,14 +40,14 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
         setStatus('idle')
       }
       // Update store with smart wallet address
-      if (data.walletAddress !== smartAccountAddress) {
+      if (data.smartWalletAddress !== smartAccountAddress) {
         updateData({
-          walletAddress: smartAccountAddress,
+          smartWalletAddress: smartAccountAddress,
           walletType: 'smart-wallet'
         })
       }
     }
-  }, [isInitializing, smartAccountAddress, smartWalletError, status, data.walletAddress, updateData])
+  }, [isInitializing, smartAccountAddress, smartWalletError, status, data.smartWalletAddress, updateData])
 
   const handleRegisterOnChain = async () => {
     if (!smartAccountAddress) {
@@ -60,12 +60,13 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
     setError('')
 
     try {
-      // Step 1: Submit off-chain registration to API with smart wallet address
+      // Step 1: Submit off-chain registration to API with both EOA and smart wallet addresses
       const endpoint = role === 'psm' ? '/api/onboarding/psm' : '/api/onboarding/user'
       const payload = {
-        // Connection - use smart wallet address
+        // Connection - use both EOA and smart wallet addresses
         email: data.email,
-        walletAddress: smartAccountAddress, // Smart wallet address
+        eoaAddress: data.eoaAddress, // EOA address from Privy
+        smartWalletAddress: smartAccountAddress, // Smart wallet address from ZeroDev
         privyId: data.privyId,
         // Personal
         nombre: data.nombre,
@@ -96,7 +97,9 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
       console.log('🔄 Submitting registration with smart wallet:', {
         endpoint,
         smartWalletAddress: smartAccountAddress,
-        email: data.email
+        eoaAddress: data.eoaAddress,
+        email: data.email,
+        fullPayload: payload
       })
 
       const res = await fetch(endpoint, {
@@ -118,8 +121,19 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
         let errorText = ''
         
         try {
+          // Try to get response as text first
           errorText = await res.text()
-          if (errorText) {
+          
+          // Log the raw response for debugging
+          console.error('Raw API error response:', {
+            status: res.status,
+            statusText: res.statusText,
+            contentType: res.headers.get('content-type'),
+            rawText: errorText,
+            textLength: errorText.length
+          })
+          
+          if (errorText && errorText.trim()) {
             try {
               err = JSON.parse(errorText) as ErrorResponse
             } catch (parseError) {
@@ -140,7 +154,8 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
           status: res.status,
           statusText: res.statusText,
           error: err,
-          rawResponse: errorText
+          rawResponse: errorText,
+          hasError: Object.keys(err).length > 0
         })
         
         // If user exists, check if we can update (wallet address change)
@@ -155,7 +170,21 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
         }
       } else {
         const result = await res.json()
-        console.log('✅ Off-chain registration successful:', result)
+        console.log('✅ Off-chain registration successful:', {
+          ...result,
+          smartWalletAddressInResponse: result.user?.smartWalletAddress,
+          smartWalletAddressSent: smartAccountAddress,
+          match: result.user?.smartWalletAddress === smartAccountAddress
+        })
+        
+        // Verify smart wallet was saved
+        if (result.user?.smartWalletAddress !== smartAccountAddress) {
+          console.warn('⚠️ Smart wallet address mismatch:', {
+            sent: smartAccountAddress,
+            saved: result.user?.smartWalletAddress,
+            email: data.email
+          })
+        }
       }
 
       // Step 2: Optional - Send a test transaction to verify smart wallet works

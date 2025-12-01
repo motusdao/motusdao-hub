@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma'
 const userOnboardingSchema = z.object({
   // Connection data
   email: z.string().email(),
-  walletAddress: z.string().min(1),
+  eoaAddress: z.string().min(1),
+  smartWalletAddress: z.string().optional(),
   privyId: z.string().optional(),
   
   // Personal data
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
       where: {
         OR: [
           { email: validatedData.email },
-          { walletAddress: validatedData.walletAddress }
+          { eoaAddress: validatedData.eoaAddress }
         ]
       },
       include: {
@@ -43,17 +44,50 @@ export async function POST(request: NextRequest) {
 
     // If user exists, update their information instead of creating new
     if (existingUser) {
-      // Check if this is the same user trying to update their wallet (EOA -> smart wallet)
-      const isUpdatingWallet = existingUser.email === validatedData.email && 
-                                existingUser.walletAddress !== validatedData.walletAddress
+      // Check if this is the same user trying to update their smart wallet
+      // Allow update if:
+      // 1. Same email and EOA, and smart wallet is missing or different
+      // 2. Registration is not completed
+      const isSameUser = existingUser.email === validatedData.email && 
+                         existingUser.eoaAddress === validatedData.eoaAddress
+      const needsSmartWalletUpdate = !existingUser.smartWalletAddress || 
+                                    (validatedData.smartWalletAddress && 
+                                     existingUser.smartWalletAddress !== validatedData.smartWalletAddress)
+      const isUpdatingSmartWallet = isSameUser && needsSmartWalletUpdate
       
-      if (isUpdatingWallet) {
-        // Update wallet address (EOA -> smart wallet)
+      // Log for debugging
+      console.log('🔍 User exists - checking update conditions:', {
+        email: validatedData.email,
+        eoaAddress: validatedData.eoaAddress,
+        smartWalletAddress: validatedData.smartWalletAddress,
+        existingSmartWallet: existingUser.smartWalletAddress,
+        isSameUser,
+        needsSmartWalletUpdate,
+        isUpdatingSmartWallet,
+        registrationCompleted: existingUser.registrationCompleted,
+        willUpdate: isUpdatingSmartWallet || !existingUser.registrationCompleted
+      })
+      
+      if (isUpdatingSmartWallet || !existingUser.registrationCompleted) {
+        // Determine the smart wallet address to use
+        // If a new smart wallet address is provided, use it; otherwise keep existing
+        const smartWalletToSave = validatedData.smartWalletAddress || existingUser.smartWalletAddress
+        
+        console.log('✅ Updating user with smart wallet:', {
+          userId: existingUser.id,
+          smartWalletToSave,
+          provided: validatedData.smartWalletAddress,
+          existing: existingUser.smartWalletAddress
+        })
+        
+        // Update user with smart wallet address and mark registration as completed
         const result = await prisma.$transaction(async (tx) => {
           const user = await tx.user.update({
             where: { id: existingUser.id },
             data: {
-              walletAddress: validatedData.walletAddress,
+              eoaAddress: validatedData.eoaAddress,
+              smartWalletAddress: smartWalletToSave,
+              registrationCompleted: true,
               privyId: validatedData.privyId || existingUser.privyId
             }
           })
@@ -116,7 +150,9 @@ export async function POST(request: NextRequest) {
             id: result.id,
             role: result.role,
             email: result.email,
-            walletAddress: result.walletAddress
+            eoaAddress: result.eoaAddress,
+            smartWalletAddress: result.smartWalletAddress,
+            registrationCompleted: result.registrationCompleted
           }
         }, { status: 200 })
       } else {
@@ -137,7 +173,9 @@ export async function POST(request: NextRequest) {
         data: {
           role: 'usuario',
           email: validatedData.email,
-          walletAddress: validatedData.walletAddress,
+          eoaAddress: validatedData.eoaAddress,
+          smartWalletAddress: validatedData.smartWalletAddress || null,
+          registrationCompleted: true,
           privyId: validatedData.privyId
         }
       })
@@ -173,7 +211,9 @@ export async function POST(request: NextRequest) {
         id: result.id,
         role: result.role,
         email: result.email,
-        walletAddress: result.walletAddress
+        eoaAddress: result.eoaAddress,
+        smartWalletAddress: result.smartWalletAddress,
+        registrationCompleted: result.registrationCompleted
       }
     }, { status: 201 })
 

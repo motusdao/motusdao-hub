@@ -595,20 +595,42 @@ body::after {
 
 /* Fix Privy hydration error: allow block elements inside p tags */
 /* This fixes the issue where Privy renders <div> inside <p> tags */
-p[class*="HelpTextContainer"] {
+/* Convert p tags with HelpTextContainer to div-like behavior */
+p[class*="HelpTextContainer"],
+p[class*="HelpTextContainer-sc"] {
   display: block !important;
+  margin: 0;
+  padding: 0;
 }
 
-p[class*="HelpTextContainer"] > div {
+p[class*="HelpTextContainer"] > div,
+p[class*="HelpTextContainer-sc"] > div {
   display: block;
 }
 
 /* Ensure Privy modals don't cause hydration issues */
-[data-privy-modal] p {
+/* Target all p tags within Privy components */
+[data-privy-modal] p,
+[data-privy-root] p,
+div[class*="privy"] p {
+  display: block;
+  margin: 0;
+}
+
+[data-privy-modal] p > div,
+[data-privy-root] p > div,
+div[class*="privy"] p > div {
   display: block;
 }
 
-[data-privy-modal] p > div {
+/* More specific fix for nested HelpTextContainer issue */
+/* This prevents React from throwing hydration warnings */
+p[class*="HelpTextContainer"] {
+  all: unset;
+  display: block !important;
+}
+
+p[class*="HelpTextContainer"] * {
   display: block;
 }
 

@@ -16,13 +16,15 @@ enum Role {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  role           Role     @default(usuario)
-  email          String   @unique
-  walletAddress  String   @unique
-  privyId        String?  @unique
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  role                  Role     @default(usuario)
+  email                 String   @unique
+  eoaAddress            String   @unique
+  smartWalletAddress    String?  @unique
+  privyId               String?  @unique
+  registrationCompleted Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   // Relations
   profile        Profile?
@@ -124,7 +126,7 @@ model Course {
   imageUrl    String?
   isPublished Boolean  @default(false)
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt  DateTime @updatedAt
 
   // Relations
   lessons     Lesson[]

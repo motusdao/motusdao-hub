@@ -1,6 +1,6 @@
 'use client'
 
-// import { useEffect } from 'react' // TODO: Add success page effects
+import { useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { 
@@ -20,10 +20,28 @@ interface StepExitoProps {
   onComplete?: () => void
 }
 
-export function StepExito({ onComplete: _onComplete }: StepExitoProps) {
-  // TODO: Use onComplete callback when needed
-  const { role, reset } = useOnboardingStore()
+export function StepExito({ onComplete }: StepExitoProps) {
+  const { role, reset, markCompleted } = useOnboardingStore()
   const router = useRouter()
+  const hasMarkedCompleted = useRef(false)
+  const hasCalledOnComplete = useRef(false)
+
+  // Mark registration as completed when this step is shown (only once)
+  useEffect(() => {
+    if (!hasMarkedCompleted.current) {
+      markCompleted()
+      hasMarkedCompleted.current = true
+    }
+    
+    if (onComplete && !hasCalledOnComplete.current) {
+      // Call onComplete after a short delay to allow the page to render
+      const timer = setTimeout(() => {
+        onComplete()
+        hasCalledOnComplete.current = true
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, []) // Empty dependency array - only run once on mount
 
   // Removed automatic reset - let user stay on success page
   // useEffect(() => {

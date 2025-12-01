@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useOnboardingStore, getStepsForRole } from '@/lib/onboarding-store'
 import { WizardStepper } from './WizardStepper'
@@ -72,11 +72,11 @@ export function OnboardingWizard({ role: initialRole }: OnboardingWizardProps) {
     }
   }
 
-  const handleComplete = () => {
+  const handleComplete = useCallback(() => {
     // Don't reset automatically - let user stay on success page
     // reset()
     console.log('Onboarding completed successfully')
-  }
+  }, [])
 
   const renderStep = () => {
     switch (currentStep) {

@@ -91,7 +91,7 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
         userEmail,
         embeddedWalletAddress,
         currentDataEmail: data.email,
-        currentDataWallet: data.walletAddress,
+        currentDataEoa: data.eoaAddress,
         celoChainId: celoChain.id,
         note: 'EOA stored - smart wallet will be created in StepBlockchain'
       })
@@ -100,17 +100,17 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
       const isValidAddress = isValidCeloAddress(embeddedWalletAddress)
       
       // Store the EOA address - smart wallet will be created later
-      if (userEmail !== data.email || embeddedWalletAddress !== data.walletAddress) {
+      if (userEmail !== data.email || embeddedWalletAddress !== data.eoaAddress) {
         updateData({ 
           email: userEmail,
-          walletAddress: embeddedWalletAddress,
+          eoaAddress: embeddedWalletAddress,
           privyId: user.id,
           celoChainId: celoChain.id,
           walletType: 'embedded' // Mark as embedded - smart wallet created later
         })
         console.log('✅ Updated store with EOA address:', { 
           email: userEmail, 
-          walletAddress: embeddedWalletAddress,
+          eoaAddress: embeddedWalletAddress,
           walletType: 'embedded',
           celoChainId: celoChain.id,
           isValidAddress,
@@ -118,7 +118,7 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
         })
       }
     }
-  }, [authenticated, user, embeddedWalletAddress, data.email, data.walletAddress, updateData, wallets])
+  }, [authenticated, user, embeddedWalletAddress, data.email, data.eoaAddress, updateData, wallets])
 
   const handleConnectWallet = async () => {
     if (!ready) return
