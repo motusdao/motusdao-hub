@@ -24,7 +24,7 @@ import { useState, useEffect } from 'react'
 import { useUIStore } from '@/lib/store'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
-import { identifyEmbeddedWallet } from '@/lib/wallet-utils'
+import { getEOAAddress } from '@/lib/wallet-utils'
 
 interface ProfileData {
   nombre: string
@@ -57,9 +57,8 @@ export default function PerfilPage() {
   // ZeroDev smart wallet hook
   const { smartAccountAddress } = useSmartAccount()
   
-  // Get EOA (embedded wallet from Privy)
-  const embeddedWallet = identifyEmbeddedWallet(wallets)
-  const eoaAddress = embeddedWallet?.address
+  // Get EOA address - prioritizes external wallet (MetaMask) over embedded wallet
+  const eoaAddress = getEOAAddress(wallets)
   
   // Get email from user
   const userEmail = user?.email?.address || user?.google?.email || 'No disponible'
@@ -494,7 +493,7 @@ export default function PerfilPage() {
                         <div className="p-3 glass-card rounded-lg">
                           <div className="flex items-center justify-center space-x-2 mb-1">
                             <Wallet className="w-4 h-4 text-mauve-500" />
-                            <span className="text-xs text-muted-foreground">EOA (Privy)</span>
+                            <span className="text-xs text-muted-foreground">Wallet Conectada (EOA)</span>
                           </div>
                           <p className="text-sm font-mono text-center">
                             {(userData?.eoaAddress || eoaAddress)?.slice(0, 6)}...{(userData?.eoaAddress || eoaAddress)?.slice(-4)}

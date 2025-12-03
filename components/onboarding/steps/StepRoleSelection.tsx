@@ -9,7 +9,8 @@ import {
   Shield,
   Users,
   Brain,
-  GraduationCap
+  GraduationCap,
+  CheckCircle2
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
@@ -56,22 +57,37 @@ export function StepRoleSelection({ onNext, onBack }: StepRoleSelectionProps) {
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="cursor-pointer"
+            className="cursor-pointer relative"
             onClick={() => handleRoleSelect('usuario')}
           >
             <GlassCard 
-              className={`p-6 transition-all duration-300 ${
+              className={`p-6 transition-all duration-300 relative ${
                 selectedRole === 'usuario' 
-                  ? 'ring-2 ring-mauve-500 bg-mauve-500/10' 
-                  : 'hover:bg-white/5'
+                  ? 'ring-4 ring-mauve-500 bg-mauve-500/20 border-2 border-mauve-500 shadow-lg shadow-mauve-500/20' 
+                  : 'hover:bg-white/5 border border-transparent'
               }`}
             >
+              {/* Checkmark indicator */}
+              {selectedRole === 'usuario' && (
+                <div className="absolute top-4 right-4">
+                  <div className="w-8 h-8 bg-mauve-500 rounded-full flex items-center justify-center shadow-lg">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center space-x-4 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <div className={`w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center transition-all ${
+                  selectedRole === 'usuario' ? 'ring-2 ring-mauve-400 scale-110' : ''
+                }`}>
                   <User className="w-6 h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold">Soy Usuario</h3>
+                <div className="flex-1">
+                  <h3 className={`text-xl font-semibold transition-colors ${
+                    selectedRole === 'usuario' ? 'text-mauve-400' : ''
+                  }`}>
+                    Soy Usuario
+                  </h3>
                   <p className="text-muted-foreground">Busco apoyo en salud mental</p>
                 </div>
               </div>
@@ -101,22 +117,37 @@ export function StepRoleSelection({ onNext, onBack }: StepRoleSelectionProps) {
           <motion.div
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            className="cursor-pointer"
+            className="cursor-pointer relative"
             onClick={() => handleRoleSelect('psm')}
           >
             <GlassCard 
-              className={`p-6 transition-all duration-300 ${
+              className={`p-6 transition-all duration-300 relative ${
                 selectedRole === 'psm' 
-                  ? 'ring-2 ring-mauve-500 bg-mauve-500/10' 
-                  : 'hover:bg-white/5'
+                  ? 'ring-4 ring-mauve-500 bg-mauve-500/20 border-2 border-mauve-500 shadow-lg shadow-mauve-500/20' 
+                  : 'hover:bg-white/5 border border-transparent'
               }`}
             >
+              {/* Checkmark indicator */}
+              {selectedRole === 'psm' && (
+                <div className="absolute top-4 right-4">
+                  <div className="w-8 h-8 bg-mauve-500 rounded-full flex items-center justify-center shadow-lg">
+                    <CheckCircle2 className="w-5 h-5 text-white" />
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center space-x-4 mb-4">
-                <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center">
+                <div className={`w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg flex items-center justify-center transition-all ${
+                  selectedRole === 'psm' ? 'ring-2 ring-mauve-400 scale-110' : ''
+                }`}>
                   <Users className="w-6 h-6 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-semibold">Soy Profesional</h3>
+                <div className="flex-1">
+                  <h3 className={`text-xl font-semibold transition-colors ${
+                    selectedRole === 'psm' ? 'text-mauve-400' : ''
+                  }`}>
+                    Soy Profesional
+                  </h3>
                   <p className="text-muted-foreground">Profesional de la Salud Mental</p>
                 </div>
               </div>

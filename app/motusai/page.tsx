@@ -288,24 +288,28 @@ export default function MotusAIPage() {
                   Acciones Rápidas
                 </h3>
                 <div className="space-y-2">
-                  <CTAButton
-                    variant="secondary"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => setInputValue('¿Cómo puedo manejar la ansiedad?')}
-                  >
-                    <Brain className="w-4 h-4 mr-2" />
-                    Manejar Ansiedad
-                  </CTAButton>
-                  <CTAButton
-                    variant="secondary"
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => setInputValue('Necesito técnicas de relajación')}
-                  >
-                    <MessageSquare className="w-4 h-4 mr-2" />
-                    Técnicas de Relajación
-                  </CTAButton>
+                  {role === 'usuario' && (
+                    <>
+                      <CTAButton
+                        variant="secondary"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => setInputValue('¿Cómo puedo manejar la ansiedad?')}
+                      >
+                        <Brain className="w-4 h-4 mr-2" />
+                        Manejar Ansiedad
+                      </CTAButton>
+                      <CTAButton
+                        variant="secondary"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => setInputValue('Necesito técnicas de relajación')}
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Técnicas de Relajación
+                      </CTAButton>
+                    </>
+                  )}
                   {role === 'psm' && (
                     <CTAButton
                       variant="secondary"

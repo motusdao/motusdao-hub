@@ -27,7 +27,7 @@ export function PrivyProviderWrapper({ children }: PrivyProviderWrapperProps) {
             walletList: ['metamask', 'wallet_connect', 'coinbase_wallet'],
           },
           embeddedWallets: { 
-            createOnLogin: 'all-users', // Always create embedded wallet for all users
+            createOnLogin: 'users-without-wallets', // Only create embedded wallet if user doesn't connect external wallet
           },
           loginMethods: ['email', 'wallet'],
           mfa: {

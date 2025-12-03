@@ -74,6 +74,54 @@ export function Topbar() {
     }
   }, [showRoleDropdown])
 
+  // Sync role from database when user is authenticated
+  // This ensures the toggle matches the actual account type created during registration
+  useEffect(() => {
+    const syncUserRole = async () => {
+      if (!ready || !authenticated || !user) return
+
+      const userEmail = user?.email?.address || user?.google?.email
+      const privyId = user?.id
+
+      if (!userEmail && !privyId) return
+
+      try {
+        const params = new URLSearchParams()
+        if (privyId) params.append('privyId', privyId)
+        if (userEmail) params.append('email', userEmail)
+
+        const response = await fetch(`/api/profile?${params.toString()}`)
+        
+        if (response.ok) {
+          const data = await response.json()
+          if (data.user?.role) {
+            const dbRole = data.user.role as 'usuario' | 'psm'
+            // Only update if the role is different from current store role
+            // This syncs the toggle with the actual account type from registration
+            if (dbRole !== role) {
+              console.log('🔄 Syncing user role from database:', {
+                currentRole: role,
+                databaseRole: dbRole,
+                updating: true
+              })
+              setRole(dbRole)
+            }
+          }
+        } else if (response.status === 404) {
+          // User not registered yet, keep current role
+          console.log('ℹ️ User not registered yet, keeping current role')
+        }
+      } catch (err) {
+        console.error('Error syncing user role:', err)
+        // Don't show error to user, just log it
+      }
+    }
+
+    // Only sync when authentication state changes, not on every render
+    syncUserRole()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated, user?.id]) // Only depend on auth state, not on role to avoid loops
+
   const handleThemeChange = (newTheme: 'light' | 'dark' | 'matrix') => {
     setTheme(newTheme)
     setShowThemeDropdown(false)

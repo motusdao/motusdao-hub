@@ -190,12 +190,16 @@ export default function Home() {
                     Tu bienestar es nuestra prioridad.
                   </p>
                   <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                    <CTAButton size="lg" glow>
-                      Crear Cuenta
-                    </CTAButton>
-                    <CTAButton variant="secondary" size="lg">
-                      Ver Demo
-                    </CTAButton>
+                    <Link href="/motusai">
+                      <CTAButton size="lg" glow className="w-full sm:w-auto">
+                        Habla con un asistente IA especializado
+                      </CTAButton>
+                    </Link>
+                    <Link href="/psicoterapia">
+                      <CTAButton variant="secondary" size="lg" className="w-full sm:w-auto">
+                        Agendar cita con un terapeuta
+                      </CTAButton>
+                    </Link>
                   </div>
                 </GlassCard>
               </motion.div>

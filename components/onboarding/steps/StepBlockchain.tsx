@@ -7,7 +7,8 @@ import {
   CheckCircle, 
   AlertCircle, 
   ExternalLink,
-  Shield
+  Shield,
+  ArrowRight
 } from 'lucide-react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
@@ -202,10 +203,7 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
 
       setStatus('success')
       
-      // Auto-redirect after 2 seconds
-      setTimeout(() => {
-        onNext()
-      }, 2000)
+      // Removed auto-redirect - user will click "Siguiente" button
       
     } catch (err) {
       setStatus('error')
@@ -372,9 +370,13 @@ export function StepBlockchain({ onNext, onBack }: StepBlockchainProps) {
               </div>
             </div>
 
-            <div className="text-sm text-muted-foreground">
-              Redirigiendo automáticamente...
-            </div>
+            <CTAButton
+              onClick={onNext}
+              className="flex items-center space-x-2 mx-auto"
+            >
+              <span>Siguiente</span>
+              <ArrowRight className="w-4 h-4" />
+            </CTAButton>
           </div>
         )
 

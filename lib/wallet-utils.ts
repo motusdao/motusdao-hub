@@ -243,3 +243,69 @@ export function verifySmartWallet(wallets: ConnectedWallet[]): {
   }
 }
 
+/**
+ * Gets the EOA (Externally Owned Account) address to use.
+ * 
+ * Priority:
+ * 1. External wallet (MetaMask, WalletConnect, etc.) - if user connected with external wallet
+ * 2. Embedded wallet (Privy) - if user logged in with email
+ * 
+ * This ensures we use the correct EOA address:
+ * - If user connects MetaMask, we use MetaMask address (not Privy embedded wallet)
+ * - If user logs in with email, we use Privy embedded wallet address
+ * 
+ * @param wallets - Array of Privy wallets (ConnectedWallet[])
+ * @returns The EOA address to use, or null if not found
+ */
+export function getEOAAddress(wallets: ConnectedWallet[]): string | null {
+  // First, check for external wallet (MetaMask, WalletConnect, etc.)
+  const externalWallet = wallets.find(wallet => wallet.walletClientType !== 'privy')
+  
+  if (externalWallet?.address) {
+    console.log('✅ Using external wallet EOA address:', externalWallet.address)
+    return externalWallet.address
+  }
+  
+  // If no external wallet, use embedded wallet (for email login)
+  const embeddedWallet = identifyEmbeddedWallet(wallets)
+  
+  if (embeddedWallet?.address) {
+    console.log('✅ Using embedded wallet EOA address:', embeddedWallet.address)
+    return embeddedWallet.address
+  }
+  
+  console.warn('⚠️ No EOA address found')
+  return null
+}
+
+/**
+ * Gets the EOA wallet to use.
+ * 
+ * Priority:
+ * 1. External wallet (MetaMask, WalletConnect, etc.) - if user connected with external wallet
+ * 2. Embedded wallet (Privy) - if user logged in with email
+ * 
+ * @param wallets - Array of Privy wallets (ConnectedWallet[])
+ * @returns The EOA wallet to use, or null if not found
+ */
+export function getEOAWallet(wallets: ConnectedWallet[]): ConnectedWallet | null {
+  // First, check for external wallet (MetaMask, WalletConnect, etc.)
+  const externalWallet = wallets.find(wallet => wallet.walletClientType !== 'privy')
+  
+  if (externalWallet) {
+    console.log('✅ Using external wallet EOA:', externalWallet.address)
+    return externalWallet
+  }
+  
+  // If no external wallet, use embedded wallet (for email login)
+  const embeddedWallet = identifyEmbeddedWallet(wallets)
+  
+  if (embeddedWallet) {
+    console.log('✅ Using embedded wallet EOA:', embeddedWallet.address)
+    return embeddedWallet
+  }
+  
+  console.warn('⚠️ No EOA wallet found')
+  return null
+}
+

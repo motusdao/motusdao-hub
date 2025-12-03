@@ -10,7 +10,8 @@ import {
   Mail, 
   AlertCircle, 
   CheckCircle,
-  Loader
+  Loader,
+  X
 } from 'lucide-react'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -18,10 +19,13 @@ import { CTAButton } from '@/components/ui/CTAButton'
 import { useOnboardingStore, isValidCeloAddress } from '@/lib/onboarding-store'
 import { getCeloChain } from '@/lib/celo'
 import { 
-  identifyEmbeddedWallet
+  getEOAAddress
 } from '@/lib/wallet-utils'
 
 const connectSchema = z.object({
+  email: z.string()
+    .min(1, 'El correo electrónico es obligatorio')
+    .email('Debe ser un correo electrónico válido'),
   acceptTerms: z.boolean()
     .refine(val => val === true, 'Debes aceptar los términos y condiciones'),
   acceptPrivacy: z.boolean()
@@ -44,27 +48,30 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isValid }
   } = useForm<ConnectFormData>({
     resolver: zodResolver(connectSchema),
     defaultValues: {
+      email: user?.email?.address || user?.google?.email || data.email || '',
       acceptTerms: false,
       acceptPrivacy: false
     },
     mode: 'onChange'
   })
 
-  // Get the embedded wallet (EOA) address - this is created on login
-  // Smart wallet will be created later in StepBlockchain
-  const embeddedWallet = identifyEmbeddedWallet(wallets)
-  const embeddedWalletAddress = embeddedWallet?.address
+  // Watch email field to update validation
+  const watchedEmail = watch('email')
+
+  // Get the EOA address - prioritizes external wallet (MetaMask) over embedded wallet
+  const eoaAddress = getEOAAddress(wallets)
   
   // Log wallet detection for debugging
   useEffect(() => {
     if (authenticated && ready && wallets.length > 0) {
       console.log('🔍 Wallet Detection Debug (StepConnect - EOA only):', {
         totalWallets: wallets.length,
-        embeddedWalletAddress,
+        eoaAddress,
         allWallets: wallets.map(w => ({
           address: w.address,
           type: w.walletClientType,
@@ -72,53 +79,58 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
         }))
       })
     }
-  }, [authenticated, ready, wallets, embeddedWalletAddress])
+  }, [authenticated, ready, wallets, eoaAddress])
 
   // Update store when user data is available
-  // Store EOA address - smart wallet will be created later in StepBlockchain
+  // Store EOA address - smart wallet will be created by ZeroDev
   useEffect(() => {
-    if (authenticated && user && user.email?.address) {
-      const userEmail = user.email?.address
+    if (authenticated && user && eoaAddress) {
+      const privyEmail = user.email?.address || user.google?.email
+      const formEmail = watchedEmail || ''
+      const emailToStore = privyEmail || formEmail
       const celoChain = getCeloChain()
       
-      if (!embeddedWalletAddress) {
-        console.warn('⚠️ No embedded wallet found')
-        return
-      }
+      // Determine wallet type based on whether it's external or embedded
+      const externalWallet = wallets.find(w => w.walletClientType !== 'privy')
+      const walletType = externalWallet ? 'external' : 'embedded'
       
       console.log('📝 StepConnect - Storing EOA address:', {
         authenticated,
-        userEmail,
-        embeddedWalletAddress,
+        privyEmail,
+        formEmail,
+        emailToStore,
+        eoaAddress,
+        walletType,
         currentDataEmail: data.email,
         currentDataEoa: data.eoaAddress,
         celoChainId: celoChain.id,
-        note: 'EOA stored - smart wallet will be created in StepBlockchain'
+        note: 'EOA stored - smart wallet will be created by ZeroDev'
       })
       
       // Validate Celo address format
-      const isValidAddress = isValidCeloAddress(embeddedWalletAddress)
+      const isValidAddress = isValidCeloAddress(eoaAddress)
       
-      // Store the EOA address - smart wallet will be created later
-      if (userEmail !== data.email || embeddedWalletAddress !== data.eoaAddress) {
+      // Store the EOA address and email - smart wallet will be created by ZeroDev
+      // Only update if email is valid and different from stored
+      if (emailToStore && emailToStore.includes('@') && (emailToStore !== data.email || eoaAddress !== data.eoaAddress)) {
         updateData({ 
-          email: userEmail,
-          eoaAddress: embeddedWalletAddress,
+          email: emailToStore,
+          eoaAddress: eoaAddress,
           privyId: user.id,
           celoChainId: celoChain.id,
-          walletType: 'embedded' // Mark as embedded - smart wallet created later
+          walletType: walletType
         })
-        console.log('✅ Updated store with EOA address:', { 
-          email: userEmail, 
-          eoaAddress: embeddedWalletAddress,
-          walletType: 'embedded',
+        console.log('✅ Updated store with EOA address and email:', { 
+          email: emailToStore, 
+          eoaAddress: eoaAddress,
+          walletType: walletType,
           celoChainId: celoChain.id,
           isValidAddress,
-          note: 'Smart wallet will be created in StepBlockchain'
+          note: 'Smart wallet will be created by ZeroDev'
         })
       }
     }
-  }, [authenticated, user, embeddedWalletAddress, data.email, data.eoaAddress, updateData, wallets])
+  }, [authenticated, user, eoaAddress, watchedEmail, data.email, data.eoaAddress, updateData, wallets])
 
   const handleConnectWallet = async () => {
     if (!ready) return
@@ -139,26 +151,38 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
       formData,
       canProceed,
       authenticated,
-      embeddedWalletAddress,
+      eoaAddress,
       isValid,
-      userEmail: user?.email?.address
+      privyEmail: user?.email?.address || user?.google?.email,
+      formEmail: formData.email
     })
     
-    // Email and EOA wallet are already set from Privy user data
+    // Update store with email (from Privy or form input)
+    const emailToSave = privyEmail || formData.email
+    if (emailToSave && emailToSave !== data.email) {
+      updateData({ email: emailToSave })
+    }
+    
     onNext()
   }
 
-  // Allow proceeding if we have embedded wallet (EOA) and email
-  // Smart wallet will be created later in StepBlockchain
-  const canProceed = authenticated && embeddedWalletAddress && isValid && user?.email?.address && isValidCeloAddress(embeddedWalletAddress)
+  // Get user email - prioritize Privy email, then form input
+  const privyEmail = user?.email?.address || user?.google?.email
+  const formEmail = watchedEmail || ''
+  const finalEmail = privyEmail || formEmail
+  const hasEmail = !!finalEmail && finalEmail.includes('@')
+  
+  // Allow proceeding if we have EOA address, email, and terms accepted
+  // Smart wallet will be created by ZeroDev
+  const canProceed = authenticated && eoaAddress && isValid && isValidCeloAddress(eoaAddress) && hasEmail
 
 
   // Debug logs
   console.log('StepConnect Debug:', {
     authenticated,
-    embeddedWalletAddress,
+    eoaAddress,
     isValid,
-    userEmail: user?.email?.address,
+    userEmail: user?.email?.address || user?.google?.email,
     canProceed
   })
 
@@ -250,20 +274,65 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Account Information */}
           <div className="space-y-4">
-            {/* Email Display */}
-            <div className="flex items-center justify-between p-4 glass rounded-xl">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-green-500">
-                  <Mail className="w-5 h-5 text-white" />
+            {/* Email Display/Input */}
+            <div className={`p-4 glass rounded-xl ${!hasEmail ? 'border border-red-500/30 bg-red-500/10' : ''}`}>
+              <div className="flex items-start space-x-3">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${hasEmail ? 'bg-green-500' : 'bg-red-500'}`}>
+                  {hasEmail ? (
+                    <Mail className="w-5 h-5 text-white" />
+                  ) : (
+                    <X className="w-5 h-5 text-white" />
+                  )}
                 </div>
-                <div>
-                  <p className="font-medium">Correo Electrónico</p>
-                  <p className="text-sm text-muted-foreground">
-                    {user?.email?.address || 'No disponible'}
-                  </p>
+                <div className="flex-1">
+                  <label htmlFor="email" className="block text-sm font-medium mb-2">
+                    Correo Electrónico *
+                  </label>
+                  {privyEmail ? (
+                    // Show email from Privy (read-only)
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        {privyEmail}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Email verificado por Privy
+                      </p>
+                    </div>
+                  ) : (
+                    // Show input field if no email from Privy
+                    <div>
+                      <input
+                        {...register('email')}
+                        type="email"
+                        id="email"
+                        placeholder="tu@email.com"
+                        className={`w-full px-4 py-3 glass border rounded-xl focus:outline-none focus:ring-2 transition-colors ${
+                          errors.email 
+                            ? 'border-red-500/50 focus:ring-red-500 focus:border-red-500' 
+                            : 'border-white/10 focus:ring-mauve-500 focus:border-mauve-500'
+                        }`}
+                      />
+                      {errors.email && (
+                        <p className="text-red-400 text-xs mt-1 flex items-center space-x-1">
+                          <AlertCircle className="w-3 h-3" />
+                          <span>{errors.email.message}</span>
+                        </p>
+                      )}
+                      {!errors.email && !hasEmail && (
+                        <p className="text-xs text-red-400 mt-1">
+                          Se requiere un correo electrónico para continuar
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
+                {hasEmail && (
+                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-1" />
+                )}
+                {!hasEmail && !privyEmail && (
+                  <X className="w-5 h-5 text-red-400 flex-shrink-0 mt-1" />
+                )}
               </div>
-              <CheckCircle className="w-5 h-5 text-green-400" />
             </div>
 
             {/* Wallet Display */}
@@ -275,14 +344,11 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
                 <div>
                   <p className="font-medium">Wallet Conectada (EOA)</p>
                   <p className="text-sm text-muted-foreground">
-                    {embeddedWalletAddress ? `${embeddedWalletAddress.slice(0, 6)}...${embeddedWalletAddress.slice(-4)}` : 'No conectada'}
-                  </p>
-                  <p className="text-xs text-blue-400 mt-1">
-                    ℹ️ El smart wallet se creará al finalizar el registro
+                    {eoaAddress ? `${eoaAddress.slice(0, 6)}...${eoaAddress.slice(-4)}` : 'No conectada'}
                   </p>
                 </div>
               </div>
-              <CheckCircle className="w-5 h-5 text-green-400" />
+              {eoaAddress && <CheckCircle className="w-5 h-5 text-green-400" />}
             </div>
           </div>
 

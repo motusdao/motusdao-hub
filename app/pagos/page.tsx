@@ -16,9 +16,12 @@ import {
   Info,
   User,
   Building2,
-  Loader
+  Loader,
+  QrCode
 } from 'lucide-react'
 import { motion } from 'framer-motion'
+import dynamic from 'next/dynamic'
+import { QRCodeSVG } from 'qrcode.react'
 import { useState, useEffect } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
@@ -96,6 +99,20 @@ interface ProviderConfig {
   description: string
 }
 
+const QRScanner = dynamic(
+  () => import('@/components/payments/QRScanner'),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+        <div className="text-sm text-muted-foreground">
+          Activando cámara...
+        </div>
+      </div>
+    )
+  }
+)
+
 export default function PagosPage() {
   const { authenticated, user, ready } = usePrivy()
   const { wallets } = useWallets()
@@ -107,6 +124,35 @@ export default function PagosPage() {
   const [selectedProvider, setSelectedProvider] = useState<OnrampProvider | null>(null)
   const [mtPelerinUrl, setMtPelerinUrl] = useState<string | null>(null)
   const [userData, setUserData] = useState<UserData | null>(null)
+  const [transferMode, setTransferMode] = useState<'send' | 'receive'>('send')
+  const [sendAddress, setSendAddress] = useState('')
+  const [sendAmount, setSendAmount] = useState('')
+  const [selectedToken, setSelectedToken] = useState<'CELO' | 'USDT' | 'USDC' | 'cUSD'>('CELO')
+  const [showQRScanner, setShowQRScanner] = useState(false)
+
+  const handleQRScan = (decodedText: string) => {
+    try {
+      let scannedAddress = decodedText
+      let amountParam: string | null = null
+
+      if (decodedText.includes('?')) {
+        const [addressPart, queryPart] = decodedText.split('?')
+        scannedAddress = addressPart
+        const params = new URLSearchParams(queryPart)
+        amountParam = params.get('amount')
+        // En el futuro se podría leer también `token`
+      }
+
+      setSendAddress(scannedAddress)
+      if (amountParam) {
+        setSendAmount(amountParam)
+      }
+    } catch (err) {
+      console.error('Error procesando QR:', err)
+    } finally {
+      setShowQRScanner(false)
+    }
+  }
 
   // Configuración de proveedores con flags de habilitación desde env vars
   const providers: ProviderConfig[] = [
@@ -650,16 +696,352 @@ export default function PagosPage() {
                     {/* Current Selection Display */}
                     {getDestinationAddress() && (
                       <div className="mt-6 p-4 glass-card rounded-lg border border-mauve-500/30">
-                        <p className="text-xs text-muted-foreground mb-2">Dirección de destino actual:</p>
-                        <p className="text-sm font-mono break-all">{getDestinationAddress()}</p>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Dirección de destino actual:
+                        </p>
+                        <p className="text-sm font-mono break-all">
+                          {getDestinationAddress()}
+                        </p>
                       </div>
                     )}
+                  </div>
+                )}
+
+                {/* Provider Selection inside Destino de Fondos */}
+                <div className="mt-10 border-t border-white/10 pt-6">
+                  <h3 className="text-xl font-semibold mb-2 text-center">
+                    Selecciona tu Proveedor de On-Ramp
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-6 text-center">
+                    Elige el proveedor que prefieras para comprar cripto con tarjeta y enviarlo al destino seleccionado.
+                  </p>
+
+                  {availableProviders.length === 0 ? (
+                    <div className="text-center py-6">
+                      <Clock className="w-10 h-10 text-yellow-500 mx-auto mb-3" />
+                      <p className="text-sm text-muted-foreground mb-1">
+                        No hay proveedores de on-ramp configurados actualmente.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Contacta al equipo de MotusDAO para habilitar los proveedores.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      {providers.map((provider) => (
+                        <button
+                          key={provider.id}
+                          onClick={() => handleStartOnramp(provider.id)}
+                          disabled={!provider.enabled || isStartingOnramp || !getDestinationAddress()}
+                          className={`p-4 glass-card rounded-lg border-2 transition-all text-left ${
+                            provider.enabled
+                              ? selectedProvider === provider.id
+                                ? 'border-mauve-500 bg-mauve-500/10'
+                                : 'border-white/10 hover:border-white/20 cursor-pointer'
+                              : 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between mb-2">
+                            <h4 className="font-semibold text-sm">{provider.name}</h4>
+                            {provider.enabled ? (
+                              <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                            ) : (
+                              <Clock className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {provider.description}
+                          </p>
+                          {!provider.enabled && (
+                            <p className="text-[11px] text-yellow-500 mt-1">
+                              Próximamente disponible
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {isStartingOnramp && (
+                    <div className="mt-4 text-center">
+                      <Loader className="w-5 h-5 animate-spin text-mauve-500 mx-auto mb-1" />
+                      <p className="text-xs text-muted-foreground">
+                        Iniciando {providers.find(p => p.id === selectedProvider)?.name}...
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </GlassCard>
+            </motion.div>
+          )}
+
+
+          {/* Send / Receive Crypto */}
+          {authenticated && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.45 }}
+              className="mb-12"
+            >
+              <GlassCard className="p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-1">Enviar y Recibir Cripto</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Usa tu smart wallet con gasless paymaster para mover fondos de forma sencilla.
+                    </p>
+                  </div>
+                  <div className="hidden sm:flex items-center text-xs text-muted-foreground">
+                    <span className="mr-2">Modo</span>
+                    <div className="inline-flex rounded-full border border-white/15 p-1 bg-white/5">
+                      <button
+                        type="button"
+                        onClick={() => setTransferMode('send')}
+                        className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                          transferMode === 'send'
+                            ? 'bg-mauve-500 text-white'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        Enviar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTransferMode('receive')}
+                        className={`px-3 py-1 rounded-full text-xs transition-colors ${
+                          transferMode === 'receive'
+                            ? 'bg-mauve-500 text-white'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        Recibir
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile toggle */}
+                <div className="sm:hidden mb-4">
+                  <div className="inline-flex rounded-full border border-white/15 p-1 bg-white/5">
+                    <button
+                      type="button"
+                      onClick={() => setTransferMode('send')}
+                      className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                        transferMode === 'send'
+                          ? 'bg-mauve-500 text-white'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      Enviar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setTransferMode('receive')}
+                      className={`px-4 py-1 rounded-full text-sm transition-colors ${
+                        transferMode === 'receive'
+                          ? 'bg-mauve-500 text-white'
+                          : 'text-muted-foreground'
+                      }`}
+                    >
+                      Recibir
+                    </button>
+                  </div>
+                </div>
+
+                {transferMode === 'send' ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          Dirección de destino
+                        </label>
+                        <input
+                          value={sendAddress}
+                          onChange={(e) => setSendAddress(e.target.value)}
+                          placeholder="Pega aquí la dirección hash a la que quieres enviar fondos"
+                          className="w-full rounded-xl border border-white/15 bg-background/60 px-3 py-2 text-sm font-mono text-muted-foreground focus:outline-none focus:ring-2 focus:ring-mauve-500/60"
+                        />
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Asegúrate de que la dirección sea compatible con la red configurada para tu smart wallet.
+                        </p>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">
+                            Monto
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={sendAmount}
+                            onChange={(e) => setSendAmount(e.target.value)}
+                            placeholder="0.0"
+                            className="w-full rounded-xl border border-white/15 bg-background/60 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-mauve-500/60"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">
+                            Token
+                          </label>
+                          <div className="w-full rounded-xl border border-white/15 bg-background/60 px-3 py-2 text-sm">
+                            <div className="flex flex-wrap gap-2 mb-2">
+                              {['CELO', 'USDT', 'USDC', 'cUSD'].map((token) => (
+                                <button
+                                  key={token}
+                                  type="button"
+                                  onClick={() => setSelectedToken(token as typeof selectedToken)}
+                                  className={`px-3 py-1 rounded-full text-xs border transition-colors ${
+                                    selectedToken === token
+                                      ? 'bg-mauve-500 text-white border-mauve-400'
+                                      : 'bg-transparent text-muted-foreground border-white/20 hover:border-white/40'
+                                  }`}
+                                >
+                                  {token}
+                                </button>
+                              ))}
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Más tokens disponibles próximamente.
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        <CTAButton
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => setShowQRScanner(true)}
+                        >
+                          <QrCode className="w-4 h-4 mr-2" />
+                          Escanear QR
+                        </CTAButton>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-xl border border-white/10 bg-white/5">
+                        <h3 className="text-sm font-semibold mb-2">Resumen de envío</h3>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          Desde tu smart wallet (gasless) hacia la dirección de destino.
+                        </p>
+                        {sendAddress && (
+                          <div className="mt-2">
+                            <p className="text-[11px] text-muted-foreground mb-1">
+                              Dirección de destino:
+                            </p>
+                            <p className="text-[11px] font-mono break-all">
+                              {sendAddress}
+                            </p>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground">
+                          Esta sección mostrará el detalle de la transacción y el costo estimado cuando la
+                          integración onchain esté activa.
+                        </p>
+                      </div>
+
+                      <CTAButton
+                        size="lg"
+                        className="w-full"
+                        onClick={() => {
+                          alert('Envío de fondos desde smart wallet: funcionalidad onchain en desarrollo.')
+                        }}
+                      >
+                        Enviar desde mi smart wallet
+                      </CTAButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">
+                          Tu dirección de smart wallet
+                        </label>
+                        <div className="rounded-xl border border-mauve-500/40 bg-background/60 px-3 py-2 text-sm font-mono break-all">
+                          {smartAccountAddress || userData?.smartWalletAddress || 'Smart wallet no disponible aún'}
+                        </div>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Esta es la dirección que puedes compartir para recibir pagos. Las comisiones de gas se
+                          cubren mediante el paymaster (gasless).
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        <CTAButton
+                          size="sm"
+                          variant="secondary"
+                          onClick={async () => {
+                            const addr = smartAccountAddress || userData?.smartWalletAddress
+                            if (!addr) {
+                              alert('No hay una smart wallet disponible para copiar.')
+                              return
+                            }
+                            try {
+                              await navigator.clipboard.writeText(addr)
+                              alert('Dirección copiada al portapapeles.')
+                            } catch (err) {
+                              console.error('Error copiando al portapapeles:', err)
+                              alert('No se pudo copiar la dirección. Copia manualmente desde el texto.')
+                            }
+                          }}
+                        >
+                          Copiar dirección
+                        </CTAButton>
+
+                        <CTAButton
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => {
+                            // Aquí en el futuro podrías abrir una vista ampliada del QR
+                          }}
+                        >
+                          <QrCode className="w-4 h-4 mr-2" />
+                          Mostrar QR
+                        </CTAButton>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-xl border border-white/10 bg-white/5 flex flex-col items-center justify-center min-h-[220px]">
+                        {smartAccountAddress || userData?.smartWalletAddress ? (
+                          <>
+                            <QRCodeSVG
+                              value={smartAccountAddress || userData?.smartWalletAddress || ''}
+                              size={180}
+                              level="H"
+                              includeMargin
+                            />
+                            <p className="mt-3 text-xs text-muted-foreground text-center">
+                              Comparte este código QR para recibir pagos directamente en tu smart wallet.
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <QrCode className="w-12 h-12 text-mauve-500 mb-3" />
+                            <p className="text-sm font-semibold mb-1">QR de recepción</p>
+                            <p className="text-xs text-muted-foreground text-center">
+                              Necesitamos tu smart wallet para generar un QR. Conéctate y vuelve a intentarlo.
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 )}
               </GlassCard>
             </motion.div>
           )}
 
+          {showQRScanner && (
+            <QRScanner
+              onScanSuccess={handleQRScan}
+              onClose={() => setShowQRScanner(false)}
+            />
+          )}
 
           {/* Current Status */}
           <motion.div
@@ -702,74 +1084,6 @@ export default function PagosPage() {
               </div>
             </GlassCard>
           </motion.div>
-
-          {/* Provider Selection */}
-          {authenticated && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-              className="mb-12"
-            >
-              <GlassCard className="max-w-4xl mx-auto p-8">
-                <h2 className="text-2xl font-bold mb-4 text-center">Selecciona tu Proveedor de On-Ramp</h2>
-                <p className="text-muted-foreground mb-6 text-center">
-                  Elige el proveedor que prefieras para comprar cripto con tarjeta y enviarlo al destino seleccionado.
-                </p>
-
-                {availableProviders.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Clock className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                    <p className="text-muted-foreground mb-2">
-                      No hay proveedores de on-ramp configurados actualmente.
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Contacta al equipo de MotusDAO para habilitar los proveedores.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {providers.map((provider) => (
-                      <button
-                        key={provider.id}
-                        onClick={() => handleStartOnramp(provider.id)}
-                        disabled={!provider.enabled || isStartingOnramp || !getDestinationAddress()}
-                        className={`p-6 glass-card rounded-lg border-2 transition-all text-left ${
-                          provider.enabled
-                            ? selectedProvider === provider.id
-                              ? 'border-mauve-500 bg-mauve-500/10'
-                              : 'border-white/10 hover:border-white/20 cursor-pointer'
-                            : 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between mb-3">
-                          <h3 className="font-semibold text-lg">{provider.name}</h3>
-                          {provider.enabled ? (
-                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
-                          ) : (
-                            <Clock className="w-5 h-5 text-yellow-500 flex-shrink-0" />
-                          )}
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2">{provider.description}</p>
-                        {!provider.enabled && (
-                          <p className="text-xs text-yellow-500 mt-2">Próximamente disponible</p>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {isStartingOnramp && (
-                  <div className="mt-6 text-center">
-                    <Loader className="w-6 h-6 animate-spin text-mauve-500 mx-auto mb-2" />
-                    <p className="text-sm text-muted-foreground">
-                      Iniciando {providers.find(p => p.id === selectedProvider)?.name}...
-                    </p>
-                  </div>
-                )}
-              </GlassCard>
-            </motion.div>
-          )}
 
           {/* Mt Pelerin On/Off-Ramp iFrame */}
           {mtPelerinUrl && selectedProvider === 'mtpelerin' && (
