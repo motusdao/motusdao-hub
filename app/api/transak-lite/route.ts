@@ -80,9 +80,23 @@ export async function POST(request: NextRequest) {
     }
 
     // Paso 2: Generar widgetUrl usando la API
-    const widgetParams = {
+    const widgetParams: {
+      apiKey: string
+      referrerDomain: string
+      walletAddress: string
+      network: string
+      cryptoCurrencyCode: string
+      defaultFiatAmount: string
+      defaultFiatCurrency: string
+      themeColor: string
+      widgetHeight: string
+      widgetWidth: string
+      userEmailAddress?: string
+    } = {
       apiKey,
-      referrerDomain: process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') || 'localhost:3000',
+      referrerDomain:
+        process.env.NEXT_PUBLIC_APP_URL?.replace(/^https?:\/\//, '') ||
+        'localhost:3000',
       walletAddress,
       network: 'celo',
       cryptoCurrencyCode: 'CUSD',
@@ -91,10 +105,8 @@ export async function POST(request: NextRequest) {
       themeColor: '5b21b6',
       widgetHeight: '650px',
       widgetWidth: '100%',
-    }
-
-    if (email) {
-      widgetParams.userEmailAddress = email
+      // Solo incluimos el email si viene en la petición
+      ...(email ? { userEmailAddress: email } : {}),
     }
 
     const widgetResponse = await fetch('https://api.transak.com/api/v2/widget-url', {
