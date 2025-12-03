@@ -1,18 +1,20 @@
 import { cn } from "@/lib/utils"
-import { ReactNode } from "react"
+import { ReactNode, MouseEventHandler } from "react"
 
 interface GlassCardProps {
   children: ReactNode
   className?: string
   variant?: 'default' | 'strong'
   hover?: boolean
+  onClick?: MouseEventHandler<HTMLDivElement>
 }
 
 export function GlassCard({ 
   children, 
   className, 
   variant = 'default',
-  hover = false 
+  hover = false,
+  onClick,
 }: GlassCardProps) {
   return (
     <div
@@ -22,8 +24,9 @@ export function GlassCard({
           ? "glass" 
           : "glass-strong",
         hover && "hover:bg-white/20 hover:scale-[1.02] hover:shadow-glow",
-        className
+        className,
       )}
+      onClick={onClick}
     >
       {children}
     </div>
