@@ -4,11 +4,11 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
 import { CTAButton } from '@/components/ui/CTAButton'
-import { 
-  CreditCard, 
-  Wallet, 
-  ArrowRight, 
-  CheckCircle, 
+import {
+  CreditCard,
+  Wallet,
+  ArrowRight,
+  CheckCircle,
   Clock,
   DollarSign,
   Shield,
@@ -22,6 +22,7 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
+import { useWallets } from '@privy-io/react-auth'
 
 const paymentSteps = [
   {
@@ -86,13 +87,50 @@ interface UserData {
   smartWalletAddress?: string | null
 }
 
+type OnrampProvider = 'transak' | 'mtpelerin' | 'privy'
+
+interface ProviderConfig {
+  id: OnrampProvider
+  name: string
+  enabled: boolean
+  description: string
+}
+
 export default function PagosPage() {
   const { authenticated, user, ready } = usePrivy()
+  const { wallets } = useWallets()
   const { smartAccountAddress } = useSmartAccount()
   const [paymentPreference, setPaymentPreference] = useState<PaymentPreferenceData | null>(null)
   const [isLoadingPreference, setIsLoadingPreference] = useState(false)
   const [isSavingPreference, setIsSavingPreference] = useState(false)
+  const [isStartingOnramp, setIsStartingOnramp] = useState(false)
+  const [selectedProvider, setSelectedProvider] = useState<OnrampProvider | null>(null)
+  const [mtPelerinUrl, setMtPelerinUrl] = useState<string | null>(null)
   const [userData, setUserData] = useState<UserData | null>(null)
+
+  // Configuración de proveedores con flags de habilitación desde env vars
+  const providers: ProviderConfig[] = [
+    {
+      id: 'transak',
+      name: 'Transak Lite',
+      enabled: !!process.env.NEXT_PUBLIC_TRANSAK_ENABLED, // Flag para habilitar/deshabilitar
+      description: 'Compra cripto con tarjeta de crédito/débito (Transak Lite)'
+    },
+    {
+      id: 'mtpelerin',
+      name: 'Mt Pelerin',
+      enabled: !!process.env.NEXT_PUBLIC_MTPELERIN_WIDGET_URL,
+      description: 'On-ramp integrado con soporte para MXN y Celo'
+    },
+    {
+      id: 'privy',
+      name: 'Privy (via Ramp/Coinbase)',
+      enabled: authenticated && !!wallets?.[0] && !!process.env.NEXT_PUBLIC_PRIVY_ONRAMP_PROVIDER, // Requiere wallet + proveedor configurado
+      description: 'On-ramp facilitado por Privy con proveedores externos'
+    }
+  ]
+
+  const availableProviders = providers.filter(p => p.enabled)
 
   const userEmail = user?.email?.address || user?.google?.email
   const privyId = user?.id
@@ -174,6 +212,173 @@ export default function PagosPage() {
         return daoTreasuryAddress
       default:
         return null
+    }
+  }
+
+  const getDestinationLabel = () => {
+    if (!paymentPreference) return '—'
+
+    switch (paymentPreference.defaultDestination) {
+      case 'own_wallet':
+        return 'Mi wallet'
+      case 'matched_psm':
+        return 'Mi psicólogo/a'
+      case 'dao_treasury':
+        return 'Tesorería de la DAO'
+      default:
+        return 'Destino desconocido'
+    }
+  }
+
+  const handleStartOnramp = async (provider: OnrampProvider) => {
+    if (!authenticated) {
+      alert('Necesitas iniciar sesión y conectar tu wallet antes de usar el on-ramp.')
+      return
+    }
+
+    const destinationAddress = getDestinationAddress()
+
+    if (!destinationAddress) {
+      alert('No se encontró una dirección de destino válida. Revisa tu selección de destino de fondos.')
+      return
+    }
+
+    const destinationLabel = getDestinationLabel()
+
+    const confirmed = window.confirm(
+      `Vas a comprar cripto con ${providers.find(p => p.id === provider)?.name} y enviarla a:\n\n` +
+        `Destino: ${destinationLabel}\n` +
+        `Dirección: ${destinationAddress}\n\n` +
+        `¿Confirmas que este es el destino correcto de tus fondos?`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setIsStartingOnramp(true)
+      setSelectedProvider(provider)
+
+      switch (provider) {
+        case 'transak': {
+          // Transak Lite integration - usa API route para generar URL firmada
+          try {
+            const response = await fetch('/api/transak-lite', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                walletAddress: destinationAddress,
+                email: userEmail
+              })
+            })
+
+            if (!response.ok) {
+              const errorData = await response.json()
+              const errorMessage = errorData.error || 'Error al generar URL de Transak'
+              const missingVars = errorData.missing || []
+              const hint = errorData.hint || ''
+              
+              throw new Error(
+                `${errorMessage}${missingVars.length > 0 ? `\n\nVariables faltantes: ${missingVars.join(', ')}` : ''}${hint ? `\n\n${hint}` : ''}`
+              )
+            }
+
+            const data = await response.json()
+            const transakUrl = data.url
+
+            if (transakUrl) {
+              // Abrir Transak en nueva pestaña
+              window.open(transakUrl, '_blank', 'noopener,noreferrer')
+            } else {
+              alert('No se pudo generar la URL de Transak. Verifica la configuración.')
+            }
+          } catch (err) {
+            console.error('Error obteniendo URL de Transak:', err)
+            alert(
+              'Error al iniciar Transak Lite.\n\n' +
+              'Asegúrate de que:\n' +
+              '1. Las credenciales estén configuradas en .env.local\n' +
+              '2. El API route /api/transak-lite esté funcionando\n\n' +
+              'Error: ' + (err instanceof Error ? err.message : 'Desconocido')
+            )
+          }
+          break
+        }
+
+        case 'mtpelerin': {
+          const baseUrl = process.env.NEXT_PUBLIC_MTPELERIN_WIDGET_URL
+
+          if (!baseUrl) {
+            alert('Mt Pelerin aún no está configurado. Contacta al equipo de MotusDAO.')
+            return
+          }
+
+          // Construye la URL del widget según la documentación de Mt Pelerin.
+          // IMPORTANTE: configura NEXT_PUBLIC_MTPELERIN_WIDGET_URL con MXN, red CELO y USDT
+          const url = new URL(baseUrl)
+          url.searchParams.set('walletAddress', destinationAddress)
+
+          setMtPelerinUrl(url.toString())
+          break
+        }
+
+        case 'privy': {
+          // Privy on-ramp integration
+          // Privy facilita la integración con proveedores externos (Ramp, Coinbase, MoonPay, etc.)
+          // Requiere configuración en backend para generar URLs firmadas
+          const primaryWallet = wallets?.[0]
+
+          if (!primaryWallet) {
+            alert('Necesitas tener una wallet conectada para usar Privy on-ramp.')
+            return
+          }
+
+          // Llamar a API route del backend para obtener URL firmada del proveedor
+          try {
+            const response = await fetch('/api/privy-onramp', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                walletAddress: destinationAddress,
+                email: userEmail,
+                provider: process.env.NEXT_PUBLIC_PRIVY_ONRAMP_PROVIDER || 'ramp' // ramp, coinbase, moonpay, etc.
+              })
+            })
+
+            if (!response.ok) {
+              throw new Error('Error al generar URL de on-ramp')
+            }
+
+            const data = await response.json()
+            const onrampUrl = data.url
+
+            if (onrampUrl) {
+              // Abrir en nueva pestaña o iframe según preferencia
+              window.open(onrampUrl, '_blank', 'noopener,noreferrer')
+            } else {
+              alert('No se pudo generar la URL de on-ramp. Verifica la configuración del backend.')
+            }
+          } catch (err) {
+            console.error('Error obteniendo URL de Privy on-ramp:', err)
+            alert(
+              'Privy on-ramp requiere configuración en el backend.\n\n' +
+              'Pasos necesarios:\n' +
+              '1. Configurar un proveedor (Ramp, Coinbase, MoonPay, etc.)\n' +
+              '2. Crear API route en /api/privy-onramp\n' +
+              '3. Generar URL firmada con clave secreta del proveedor\n\n' +
+              'Por ahora, puedes usar Mt Pelerin o Transak.'
+            )
+          }
+          break
+        }
+
+        default:
+          alert('Proveedor no reconocido.')
+      }
+    } catch (err) {
+      console.error('Error iniciando on-ramp:', err)
+      alert('Hubo un problema al iniciar el widget de pagos. Intenta nuevamente en unos momentos.')
+    } finally {
+      setIsStartingOnramp(false)
     }
   }
 
@@ -486,7 +691,7 @@ export default function PagosPage() {
                     </div>
                     <div className="flex items-center space-x-2">
                       <Clock className="w-4 h-4 text-yellow-500" />
-                      <span className="text-sm">Onramp con Transak/MiniPay</span>
+                      <span className="text-sm">Onramp con múltiples proveedores (Transak, Mt Pelerin, Privy)</span>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Clock className="w-4 h-4 text-yellow-500" />
@@ -498,30 +703,113 @@ export default function PagosPage() {
             </GlassCard>
           </motion.div>
 
-          {/* CTA */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.5 }}
-            className="text-center"
-          >
-            <GlassCard className="max-w-2xl mx-auto p-8">
-              <h2 className="text-2xl font-bold mb-4">¿Listo para el futuro de los pagos?</h2>
-              <p className="text-muted-foreground mb-6">
-                Mantente actualizado sobre las nuevas funcionalidades del sistema de pagos descentralizado.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <CTAButton size="lg" glow disabled>
-                  <Wallet className="w-5 h-5 mr-2" />
-                  Conectar Wallet
-                </CTAButton>
-                <CTAButton variant="secondary" size="lg" disabled>
-                  <Info className="w-5 h-5 mr-2" />
-                  Más Información
-                </CTAButton>
-              </div>
-            </GlassCard>
-          </motion.div>
+          {/* Provider Selection */}
+          {authenticated && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5 }}
+              className="mb-12"
+            >
+              <GlassCard className="max-w-4xl mx-auto p-8">
+                <h2 className="text-2xl font-bold mb-4 text-center">Selecciona tu Proveedor de On-Ramp</h2>
+                <p className="text-muted-foreground mb-6 text-center">
+                  Elige el proveedor que prefieras para comprar cripto con tarjeta y enviarlo al destino seleccionado.
+                </p>
+
+                {availableProviders.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Clock className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-2">
+                      No hay proveedores de on-ramp configurados actualmente.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      Contacta al equipo de MotusDAO para habilitar los proveedores.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {providers.map((provider) => (
+                      <button
+                        key={provider.id}
+                        onClick={() => handleStartOnramp(provider.id)}
+                        disabled={!provider.enabled || isStartingOnramp || !getDestinationAddress()}
+                        className={`p-6 glass-card rounded-lg border-2 transition-all text-left ${
+                          provider.enabled
+                            ? selectedProvider === provider.id
+                              ? 'border-mauve-500 bg-mauve-500/10'
+                              : 'border-white/10 hover:border-white/20 cursor-pointer'
+                            : 'border-white/5 bg-white/5 opacity-50 cursor-not-allowed'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between mb-3">
+                          <h3 className="font-semibold text-lg">{provider.name}</h3>
+                          {provider.enabled ? (
+                            <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
+                          ) : (
+                            <Clock className="w-5 h-5 text-yellow-500 flex-shrink-0" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mb-2">{provider.description}</p>
+                        {!provider.enabled && (
+                          <p className="text-xs text-yellow-500 mt-2">Próximamente disponible</p>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {isStartingOnramp && (
+                  <div className="mt-6 text-center">
+                    <Loader className="w-6 h-6 animate-spin text-mauve-500 mx-auto mb-2" />
+                    <p className="text-sm text-muted-foreground">
+                      Iniciando {providers.find(p => p.id === selectedProvider)?.name}...
+                    </p>
+                  </div>
+                )}
+              </GlassCard>
+            </motion.div>
+          )}
+
+          {/* Mt Pelerin On/Off-Ramp iFrame */}
+          {mtPelerinUrl && selectedProvider === 'mtpelerin' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.6 }}
+              className="mt-8"
+            >
+              <GlassCard className="p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">
+                    Completa tu compra de cripto sin salir de MotusDAO
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setMtPelerinUrl(null)
+                      setSelectedProvider(null)
+                    }}
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Este widget es proporcionado por Mt Pelerin. Asegúrate de que la dirección mostrada en el flujo
+                  coincida con el destino que seleccionaste aquí.
+                </p>
+                <div className="w-full">
+                  <iframe
+                    src={mtPelerinUrl}
+                    title="Mt Pelerin exchange widget"
+                    loading="lazy"
+                    allow="usb; ethereum; clipboard-write; payment; microphone; camera"
+                    className="w-full h-[700px] rounded-xl border border-white/10"
+                  />
+                </div>
+              </GlassCard>
+            </motion.div>
+          )}
         </div>
       </Section>
     </div>

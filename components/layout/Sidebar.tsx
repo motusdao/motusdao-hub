@@ -17,7 +17,9 @@ import {
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import Image from 'next/image'
-// import { useState } from 'react' // TODO: Add mobile menu functionality
+import { usePrivy } from '@privy-io/react-auth'
+import { useState } from 'react'
+import { LoginRequiredModal } from '@/components/ui/LoginRequiredModal'
 
 const iconMap = {
   Home,
@@ -34,8 +36,23 @@ const iconMap = {
 export function Sidebar() {
   const { role, sidebarOpen, setSidebarOpen } = useUIStore()
   const pathname = usePathname()
+  const { authenticated } = usePrivy()
+  const [showLoginModal, setShowLoginModal] = useState(false)
 
   const navigationItems = getNavigationItems(role)
+
+  const handleLinkClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+    // Allow access to home and docs pages
+    if (href === '/' || href === '/docs') {
+      return
+    }
+
+    // Block access to other pages if not authenticated
+    if (!authenticated) {
+      e.preventDefault()
+      setShowLoginModal(true)
+    }
+  }
 
   return (
     <>
@@ -88,6 +105,7 @@ export function Sidebar() {
             {navigationItems.map((item) => {
               const Icon = iconMap[item.icon as keyof typeof iconMap]
               const isActive = pathname === item.href
+              const isBlocked = !authenticated && item.href !== '/' && item.href !== '/docs'
 
               return (
                 <Link
@@ -97,9 +115,11 @@ export function Sidebar() {
                     "flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group",
                     isActive
                       ? "bg-mauve-500/20 text-mauve-400 border border-mauve-500/30"
-                      : "text-muted-foreground hover:text-foreground hover:bg-white/5"
+                      : "text-muted-foreground hover:text-foreground hover:bg-white/5",
+                    isBlocked && "opacity-60 cursor-not-allowed"
                   )}
-                  onClick={() => {
+                  onClick={(e) => {
+                    handleLinkClick(e, item.href)
                     if (window.innerWidth < 1024) {
                       setSidebarOpen(false)
                     }
@@ -126,6 +146,12 @@ export function Sidebar() {
           </div>
         </div>
       </aside>
+
+      {/* Login Required Modal */}
+      <LoginRequiredModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+      />
     </>
   )
 }
