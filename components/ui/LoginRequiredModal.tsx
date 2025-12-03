@@ -1,6 +1,5 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
 import { X } from 'lucide-react'
 import { GlassCard } from './GlassCard'
 import { CTAButton } from './CTAButton'
@@ -14,7 +13,6 @@ interface LoginRequiredModalProps {
 }
 
 export function LoginRequiredModal({ isOpen, onClose }: LoginRequiredModalProps) {
-  const { login } = usePrivy()
   const [showEmailLogin, setShowEmailLogin] = useState(false)
 
   if (!isOpen) return null

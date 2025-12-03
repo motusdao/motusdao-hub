@@ -11,10 +11,15 @@ interface QRScannerProps {
   onClose: () => void
 }
 
+type Html5QrcodeScannerRef = {
+  stop: () => Promise<void> | void
+  clear: () => Promise<void> | void
+} | null
+
 const SCAN_AREA_ID = 'motusdao-qr-scan-area'
 
 export default function QRScanner({ onScanSuccess, onScanError, onClose }: QRScannerProps) {
-  const scannerRef = useRef<any | null>(null)
+  const scannerRef = useRef<Html5QrcodeScannerRef>(null)
   const [isInitializing, setIsInitializing] = useState(true)
   const [hasPermission, setHasPermission] = useState<boolean | null>(null)
   const [error, setError] = useState<string | null>(null)
