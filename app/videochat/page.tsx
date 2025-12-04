@@ -9,9 +9,29 @@ import { CTAButton } from '@/components/ui/CTAButton'
 import { Video, RefreshCcw } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 
+type JitsiInitOptions = {
+  roomName: string
+  parentNode: HTMLElement
+  width?: string | number
+  height?: string | number
+  configOverwrite?: Record<string, unknown>
+  interfaceConfigOverwrite?: Record<string, unknown>
+}
+
+type JitsiExternalAPI = {
+  dispose: () => void
+  // We only use a tiny subset of the API in this page; the rest is left as unknown
+  [key: string]: unknown
+}
+
+type JitsiExternalAPIConstructor = new (
+  domain: string,
+  options: JitsiInitOptions,
+) => JitsiExternalAPI
+
 declare global {
   interface Window {
-    JitsiMeetExternalAPI?: any
+    JitsiMeetExternalAPI?: JitsiExternalAPIConstructor
   }
 }
 
@@ -29,7 +49,7 @@ function buildFallbackRoom() {
 export default function VideochatPage() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [isJitsiReady, setIsJitsiReady] = useState(false)
-  const [api, setApi] = useState<any | null>(null)
+  const [api, setApi] = useState<JitsiExternalAPI | null>(null)
   const [scriptError, setScriptError] = useState<string | null>(null)
   const [roomInfo, setRoomInfo] = useState<{ domain: string; roomName: string } | null>(null)
   const searchParams = useSearchParams()
