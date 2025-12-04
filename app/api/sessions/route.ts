@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { SessionStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 
 // Helper: build random Jitsi room URL (configurable for producción)
@@ -73,7 +74,7 @@ export async function POST(request: NextRequest) {
       where: {
         userId: user.id,
         status: {
-          in: ['requested', 'accepted'],
+          in: [SessionStatus.requested, SessionStatus.accepted],
         },
       },
       orderBy: {
@@ -162,8 +163,8 @@ export async function GET(request: NextRequest) {
     }
 
     const where = userId
-      ? { userId, status: { in: ['requested', 'accepted'] } }
-      : { psmId: psmId!, status: { in: ['requested', 'accepted'] } }
+      ? { userId, status: { in: [SessionStatus.requested, SessionStatus.accepted] } }
+      : { psmId: psmId!, status: { in: [SessionStatus.requested, SessionStatus.accepted] } }
 
     const session = await prisma.session.findFirst({
       where,

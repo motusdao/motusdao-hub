@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
 import { Section } from '@/components/ui/Section'
 import { GlassCard } from '@/components/ui/GlassCard'
@@ -46,7 +46,7 @@ function buildFallbackRoom() {
   return `${JITSI_ROOM_PREFIX}${slug}`
 }
 
-export default function VideochatPage() {
+function VideochatInner() {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [isJitsiReady, setIsJitsiReady] = useState(false)
   const [api, setApi] = useState<JitsiExternalAPI | null>(null)
@@ -200,7 +200,7 @@ export default function VideochatPage() {
                 Copiar link de sala
               </CTAButton>
               <CTAButton
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 onClick={handleReload}
               >
@@ -228,6 +228,14 @@ export default function VideochatPage() {
         </GlassCard>
       </Section>
     </>
+  )
+}
+
+export default function VideochatPage() {
+  return (
+    <Suspense fallback={null}>
+      <VideochatInner />
+    </Suspense>
   )
 }
 
