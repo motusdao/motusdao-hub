@@ -162,8 +162,8 @@ export async function GET(request: NextRequest) {
     }
 
     const where = userId
-      ? { userId, status: { in: ['requested', 'accepted'] as const } }
-      : { psmId: psmId!, status: { in: ['requested', 'accepted'] as const } }
+      ? { userId, status: { in: ['requested', 'accepted'] } }
+      : { psmId: psmId!, status: { in: ['requested', 'accepted'] } }
 
     const session = await prisma.session.findFirst({
       where,
