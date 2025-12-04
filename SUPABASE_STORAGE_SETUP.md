@@ -123,3 +123,6 @@ Ejemplo: `avatars/clx123abc-1704067200000.jpg`
 
 4. **URLs públicas**: Las imágenes son accesibles públicamente. Si necesitas privacidad, considera usar signed URLs en su lugar.
 
+
+
+

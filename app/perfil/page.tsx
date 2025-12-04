@@ -164,6 +164,12 @@ export default function PerfilPage() {
 
   const [matchData, setMatchData] = useState<MatchData | null>(null)
   const [isLoadingMatch, setIsLoadingMatch] = useState(false)
+  const [activeSession, setActiveSession] = useState<{
+    id: string
+    status: string
+    externalUrl: string
+  } | null>(null)
+  const [isLoadingSession, setIsLoadingSession] = useState(false)
 
   // Fetch profile data from API
   useEffect(() => {
@@ -244,6 +250,38 @@ export default function PerfilPage() {
 
     if (userData?.id) {
       fetchMatchData()
+    }
+  }, [userData?.id, userData?.role])
+
+  // Fetch active therapy session
+  useEffect(() => {
+    const fetchSession = async () => {
+      if (!userData?.id || userData.role !== 'usuario') return
+
+      setIsLoadingSession(true)
+      try {
+        const res = await fetch(`/api/sessions?userId=${userData.id}`)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.activeSession) {
+            setActiveSession({
+              id: data.activeSession.id,
+              status: data.activeSession.status,
+              externalUrl: data.activeSession.externalUrl
+            })
+          } else {
+            setActiveSession(null)
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching active session:', err)
+      } finally {
+        setIsLoadingSession(false)
+      }
+    }
+
+    if (userData?.id && userData.role === 'usuario') {
+      fetchSession()
     }
   }, [userData?.id, userData?.role])
 
@@ -776,6 +814,43 @@ export default function PerfilPage() {
                                 </p>
                               </div>
                             )}
+
+                            {/* Active session CTA */}
+                            <div className="mt-6 pt-4 border-t border-white/10">
+                              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-semibold mb-1">
+                                    Sesión de terapia
+                                  </p>
+                                  {isLoadingSession ? (
+                                    <p className="text-xs text-muted-foreground">
+                                      Cargando información de tu sesión...
+                                    </p>
+                                  ) : activeSession ? (
+                                    <p className="text-xs text-green-400">
+                                      Tienes una sesión {activeSession.status === 'accepted' ? 'aceptada' : 'solicitada'} lista para iniciar.
+                                    </p>
+                                  ) : (
+                                    <p className="text-xs text-muted-foreground">
+                                      Aún no tienes una sesión activa. Puedes solicitar una desde MotusAI.
+                                    </p>
+                                  )}
+                                </div>
+                                {activeSession && (
+                                  <CTAButton
+                                    size="sm"
+                                    onClick={() => {
+                                      if (typeof window !== 'undefined') {
+                                        window.open(activeSession.externalUrl, '_blank', 'noopener,noreferrer')
+                                      }
+                                    }}
+                                  >
+                                    <Calendar className="w-4 h-4 mr-2" />
+                                    Unirse a la sesión
+                                  </CTAButton>
+                                )}
+                              </div>
+                            </div>
                           </div>
 
                           {matchData.matchHistory && matchData.matchHistory.length > 0 && (

@@ -303,3 +303,6 @@ Unless WaaP confirms Celo support, **stick with Privy** and implement the lazy c
 *Analysis Date: $(date)*
 *Based on: WaaP Documentation, Privy Documentation, Current Codebase Analysis*
 
+
+
+

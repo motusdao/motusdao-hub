@@ -27,6 +27,17 @@ enum PaymentDestination {
   dao_treasury
 }
 
+enum SessionStatus {
+  requested
+  accepted
+  completed
+  cancelled
+}
+
+enum SessionMode {
+  video_external
+}
+
 model User {
   id                    String   @id @default(cuid())
   role                  Role     @default(usuario)
@@ -50,6 +61,10 @@ model User {
   paymentPreference PaymentPreference?
   paymentsSent   PaymentLog[] @relation("UserPayments")
   paymentsReceived PaymentLog[] @relation("PSMPayments")
+
+  // Session relations
+  sessionsAsUser Session[] @relation("SessionUser")
+  sessionsAsPSM  Session[] @relation("SessionPSM")
 
   @@map("users")
 }
@@ -203,6 +218,9 @@ model Match {
   user            User        @relation("UserMatches", fields: [userId], references: [id], onDelete: Cascade)
   psm             User        @relation("PSMMatches", fields: [psmId], references: [id], onDelete: Cascade)
 
+  // Relations
+  sessions        Session[]
+
   @@unique([userId, psmId])
   @@index([userId, status])
   @@index([psmId, status])
@@ -242,4 +260,30 @@ model PaymentLog {
   @@index([toUserId, createdAt])
   @@index([destination])
   @@map("payment_logs")
+}
+
+model Session {
+  id              String        @id @default(cuid())
+  userId          String
+  psmId           String
+  matchId         String?
+  status          SessionStatus @default(requested)
+  mode            SessionMode   @default(video_external)
+  externalUrl     String
+  requestedAt     DateTime      @default(now())
+  acceptedAt      DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  cancelReason    String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user            User          @relation("SessionUser", fields: [userId], references: [id], onDelete: Cascade)
+  psm             User          @relation("SessionPSM", fields: [psmId], references: [id], onDelete: Cascade)
+  match           Match?        @relation(fields: [matchId], references: [id])
+
+  @@index([userId, status])
+  @@index([psmId, status])
+  @@map("sessions")
 }

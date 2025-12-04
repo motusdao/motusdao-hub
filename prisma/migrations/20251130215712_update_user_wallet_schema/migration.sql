@@ -27,3 +27,6 @@ ALTER TABLE "users" ADD CONSTRAINT "users_smartWalletAddress_key" UNIQUE ("smart
 -- Step 7: Drop the old walletAddress column
 ALTER TABLE "users" DROP COLUMN IF EXISTS "walletAddress";
 
+
+
+

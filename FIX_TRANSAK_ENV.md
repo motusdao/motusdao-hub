@@ -90,3 +90,6 @@ Si ves `false` en alguno, las variables no se están leyendo correctamente.
 - `TRANSAK_API_SECRET`: **NUNCA** debe tener `NEXT_PUBLIC_` porque es secreta
 - El API route usa el secret solo en el servidor, nunca se expone al cliente
 
+
+
+

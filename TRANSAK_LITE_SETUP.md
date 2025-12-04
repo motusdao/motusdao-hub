@@ -118,3 +118,6 @@ Una vez que Transak Lite esté funcionando:
 - **Dashboard de Transak**: [app.transak.com](https://app.transak.com)
 - **Soporte**: Contacta a Transak si tienes problemas con las credenciales
 
+
+
+

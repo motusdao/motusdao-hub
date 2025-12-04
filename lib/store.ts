@@ -61,6 +61,7 @@ export const getNavigationItems = (role: UserRole) => {
     { name: 'MotusAI', href: '/motusai', icon: 'Bot' },
     { name: 'Academia', href: '/academia', icon: 'GraduationCap' },
     { name: 'Pagos', href: '/pagos', icon: 'CreditCard' },
+    { name: 'Videochat', href: '/videochat', icon: 'Video' },
     { name: 'Bitácora', href: '/bitacora', icon: 'BookOpen' },
     { name: 'Perfil', href: '/perfil', icon: 'User' },
   ]

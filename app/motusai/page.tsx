@@ -4,11 +4,12 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
 import { CTAButton } from '@/components/ui/CTAButton'
-import { Bot, Send, MessageSquare, Brain, Sparkles } from 'lucide-react'
+import { Bot, Send, MessageSquare, Brain, Sparkles, PhoneCall } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useUIStore } from '@/lib/store'
 import { marked } from 'marked'
+import { usePrivy } from '@privy-io/react-auth'
 
 interface Message {
   id: string
@@ -43,6 +44,7 @@ const renderMarkdown = (content: string): string => {
 
 export default function MotusAIPage() {
   const { role } = useUIStore()
+  const { user, authenticated, ready } = usePrivy()
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -55,11 +57,86 @@ export default function MotusAIPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [isClient, setIsClient] = useState(false)
+  const [isCreatingSession, setIsCreatingSession] = useState(false)
+  const [sessionError, setSessionError] = useState<string | null>(null)
 
   // Fix hydration issue
   useEffect(() => {
     setIsClient(true)
   }, [])
+
+  const handleRequestHumanSession = async () => {
+    try {
+      setSessionError(null)
+
+      if (!ready || !authenticated) {
+        setSessionError('Necesitas iniciar sesión para hablar con un terapeuta humano.')
+        return
+      }
+
+      const userEmail = user?.email?.address || user?.google?.email
+      const privyId = user?.id
+
+      if (!userEmail && !privyId) {
+        setSessionError('No se pudo identificar tu usuario. Intenta desde la página de perfil.')
+        return
+      }
+
+      setIsCreatingSession(true)
+
+      // 1. Obtener el userId desde el perfil
+      const params = new URLSearchParams()
+      if (privyId) params.append('privyId', privyId)
+      if (userEmail) params.append('email', userEmail)
+
+      const profileRes = await fetch(`/api/profile?${params.toString()}`)
+      if (!profileRes.ok) {
+        if (profileRes.status === 404) {
+          throw new Error('No encontramos tu perfil. Completa primero tu registro en la sección Perfil.')
+        }
+        throw new Error('Error al obtener tu perfil de usuario.')
+      }
+
+      const profileData = await profileRes.json()
+      const userId = profileData.user?.id as string | undefined
+
+      if (!userId) {
+        throw new Error('No se pudo obtener tu ID de usuario.')
+      }
+
+      // 2. Crear o reutilizar una sesión con el PSM emparejado
+      const sessionRes = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+
+      const sessionData = await sessionRes.json()
+
+      if (!sessionRes.ok) {
+        throw new Error(sessionData.error || 'Error al crear la sesión.')
+      }
+
+      const url = sessionData.session?.externalUrl
+      if (!url) {
+        throw new Error('La sesión no tiene un enlace de videollamada válido.')
+      }
+
+      // Abrir la videollamada en una nueva pestaña
+      if (typeof window !== 'undefined') {
+        window.open(url, '_blank', 'noopener,noreferrer')
+      }
+    } catch (err) {
+      console.error('Error requesting human session:', err)
+      setSessionError(
+        err instanceof Error
+          ? err.message
+          : 'Hubo un problema al crear tu sesión. Intenta nuevamente más tarde.'
+      )
+    } finally {
+      setIsCreatingSession(false)
+    }
+  }
 
   const handleSendMessage = async () => {
     if (!inputValue.trim()) return
@@ -308,6 +385,16 @@ export default function MotusAIPage() {
                         <MessageSquare className="w-4 h-4 mr-2" />
                         Técnicas de Relajación
                       </CTAButton>
+                      <CTAButton
+                        variant="primary"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={handleRequestHumanSession}
+                        disabled={isCreatingSession}
+                      >
+                        <PhoneCall className="w-4 h-4 mr-2" />
+                        {isCreatingSession ? 'Creando sesión...' : 'Habla con un terapeuta humano'}
+                      </CTAButton>
                     </>
                   )}
                   {role === 'psm' && (
@@ -323,6 +410,12 @@ export default function MotusAIPage() {
                   )}
                 </div>
               </GlassCard>
+
+              {sessionError && (
+                <GlassCard className="p-4">
+                  <p className="text-xs text-red-400">{sessionError}</p>
+                </GlassCard>
+              )}
 
               {/* Chat History */}
               <GlassCard className="p-6">

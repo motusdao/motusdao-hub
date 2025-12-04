@@ -12,6 +12,7 @@ import {
   CreditCard, 
   BookOpen, 
   User,
+  Video,
   X
 } from 'lucide-react'
 import Link from 'next/link'
@@ -31,6 +32,7 @@ const iconMap = {
   CreditCard,
   BookOpen,
   User,
+  Video,
 }
 
 export function Sidebar() {
