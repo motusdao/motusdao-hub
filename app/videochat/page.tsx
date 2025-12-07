@@ -268,9 +268,12 @@ function VideochatInner() {
         console.log('Sala cerrada')
       })
 
-      instance.on('errorOccurred', (error: any) => {
+      instance.on('errorOccurred', (error: { error?: string; message?: string } | string) => {
         console.error('❌ Error en Jitsi:', error)
-        setScriptError(`Error en Jitsi: ${error?.error || 'Error desconocido'}`)
+        const errorMessage = typeof error === 'string' 
+          ? error 
+          : (error?.error || error?.message || 'Error desconocido')
+        setScriptError(`Error en Jitsi: ${errorMessage}`)
       })
 
       instance.on('ready', () => {

@@ -359,8 +359,9 @@ export default function FloatingLines({
     setSize();
 
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(setSize) : null;
-    if (ro && containerRef.current) {
-      ro.observe(containerRef.current);
+    const containerElement = containerRef.current;
+    if (ro && containerElement) {
+      ro.observe(containerElement);
     }
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -409,7 +410,7 @@ export default function FloatingLines({
 
     return () => {
       cancelAnimationFrame(raf);
-      if (ro && containerRef.current) {
+      if (ro && containerElement) {
         ro.disconnect();
       }
       if (interactive) {
@@ -427,6 +428,12 @@ export default function FloatingLines({
     linesGradient,
     enabledWaves,
     lineCount,
+    topLineCount,
+    middleLineCount,
+    bottomLineCount,
+    topLineDistance,
+    middleLineDistance,
+    bottomLineDistance,
     lineDistance,
     topWavePosition,
     middleWavePosition,

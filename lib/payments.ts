@@ -346,7 +346,6 @@ export async function sendPaymentWithKernel(
         errorMessage.toLowerCase().includes('sponsorship limit') ||
         errorMessage.toLowerCase().includes('billing plan') ||
         errorMessage.toLowerCase().includes('upgrade your billing')) {
-      const selfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
       return {
         success: false,
         error: `⚠️ ZeroDev bloquea mainnet en el plan gratuito.\n\n` +
