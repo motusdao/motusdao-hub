@@ -37,9 +37,9 @@ export default function RootLayout({
             <div className="min-h-screen bg-background overflow-x-hidden">
               <div className="flex min-h-screen max-w-full">
                 <Sidebar />
-                <div className="flex-1 lg:ml-64 flex flex-col min-h-screen overflow-y-auto overflow-x-hidden">
+                <div className="flex-1 lg:ml-64 flex flex-col min-h-screen overflow-y-auto overflow-x-hidden relative z-10">
                   <Topbar />
-                  <main className="flex-1 pt-16 sm:pt-20 px-4 max-w-full">
+                  <main className="flex-1 pt-16 sm:pt-20 px-4 max-w-full relative z-10">
                     {children}
                   </main>
                   <Footer />

@@ -173,50 +173,100 @@ export function ZeroDevSmartWalletProvider({
         // the same Project ID works on Celo Mainnet by specifying chain ID in URL
         const bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
         
-        // ZeroDev Paymaster Configuration
-        // Self-Funded Mode: Requires CELO deposit to paymaster contract on Celo Mainnet
-        // Note: The chain ID might not be needed in the URL - ZeroDev determines it from the chain parameter
-        const useSelfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
-        // Try without chain ID in URL first - ZeroDev should determine chain from the chain parameter
-        const paymasterUrl = useSelfFunded
-          ? `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}?selfFunded=true`
-          : `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}`
+        // Paymaster Configuration: Use Pimlico if API key is available, otherwise use ZeroDev
+        const pimlicoApiKey = process.env.NEXT_PUBLIC_PIMLICO_API_KEY
+        const usePimlico = !!pimlicoApiKey
         
-        console.log('[ZERODEV] ⚙️ Configuration:', {
-          projectId: zeroDevProjectId.substring(0, 8) + '...',
-          chainId: FORCED_CHAIN.id,
-          chainName: FORCED_CHAIN.name,
-          mode: useSelfFunded ? 'self-funded' : 'credit-card-billing',
-        })
-        console.log('[ZERODEV] 📦 Bundler URL:', bundlerUrl.replace(zeroDevProjectId, '***'))
-        console.log('[ZERODEV] 💰 Paymaster URL:', paymasterUrl.replace(zeroDevProjectId, '***'))
+        let paymasterClient
         
-        // Create ZeroDev paymaster client
-        const paymasterClient = createZeroDevPaymasterClient({
-          chain: FORCED_CHAIN,
-          transport: http(paymasterUrl),
-        })
-        
-        console.log('[ZERODEV] ✅ ZeroDev paymaster client created', {
-          mode: useSelfFunded ? 'self-funded (mainnet)' : 'credit-card-billing',
-          chainId: FORCED_CHAIN.id,
-          note: useSelfFunded 
-            ? 'Make sure paymaster contract is funded on Celo Mainnet (42220)' 
-            : 'Using credit card billing'
-        })
+        if (usePimlico) {
+          // Use Pimlico Paymaster
+          // Pimlico paymaster URL format: https://api.pimlico.io/v2/{chainId}/rpc?apikey={apiKey}
+          const pimlicoPaymasterUrl = `https://api.pimlico.io/v2/${FORCED_CHAIN.id}/rpc?apikey=${pimlicoApiKey}`
+          
+          console.log('[ZERODEV] 🔄 Using Pimlico paymaster')
+          console.log('[ZERODEV] 💰 Pimlico Paymaster URL:', pimlicoPaymasterUrl.replace(pimlicoApiKey, '***'))
+          console.log('[ZERODEV] ℹ️ Smart wallets still created by ZeroDev, only paymaster is Pimlico')
+          
+          // Create Pimlico paymaster client
+          // Pimlico paymaster is compatible with ZeroDev Kernel
+          // We use the same createZeroDevPaymasterClient but with Pimlico URL
+          // This works because both use ERC4337 standard paymaster interface
+          paymasterClient = createZeroDevPaymasterClient({
+            chain: FORCED_CHAIN,
+            transport: http(pimlicoPaymasterUrl),
+          })
+          
+          console.log('[ZERODEV] ✅ Pimlico paymaster client created', {
+            chainId: FORCED_CHAIN.id,
+            note: 'Using Pimlico paymaster with ZeroDev smart wallets'
+          })
+        } else {
+          // Use ZeroDev Paymaster (fallback)
+          const useSelfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
+          
+          // IMPORTANT: Try using v3 API endpoint (same as bundler) which may handle chainId better
+          const paymasterUrl = useSelfFunded
+            ? `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}/paymaster?selfFunded=true`
+            : `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}/paymaster`
+          
+          console.log('[ZERODEV] ⚙️ Configuration:', {
+            projectId: zeroDevProjectId.substring(0, 8) + '...',
+            chainId: FORCED_CHAIN.id,
+            chainName: FORCED_CHAIN.name,
+            mode: useSelfFunded ? 'self-funded' : 'credit-card-billing',
+            selfFundedEnv: process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED,
+            useSelfFunded,
+            paymasterUrl: paymasterUrl.replace(zeroDevProjectId, '***'),
+            note: 'Dashboard may show Alfajores, but mainnet works via chainId in URL',
+          })
+          console.log('[ZERODEV] 📦 Bundler URL:', bundlerUrl.replace(zeroDevProjectId, '***'))
+          console.log('[ZERODEV] 💰 Paymaster URL:', paymasterUrl.replace(zeroDevProjectId, '***'))
+          
+          if (useSelfFunded) {
+            console.warn('[ZERODEV] ⚠️ Self-funded mode enabled.')
+            console.warn('[ZERODEV] ⚠️ IMPORTANT: ZeroDev plan gratuito NO permite mainnet.')
+            console.warn('[ZERODEV] ⚠️ Aunque tengas contratos fondeados, la API bloqueará mainnet.')
+            console.warn('[ZERODEV] ⚠️ Considera usar Pimlico paymaster (NEXT_PUBLIC_PIMLICO_API_KEY)')
+          } else {
+            console.log('[ZERODEV] ✅ Using ZeroDev credit card billing mode')
+            console.log('[ZERODEV] ℹ️ ZeroDev will front gas and charge your credit card')
+            console.log('[ZERODEV] ℹ️ Gas credits ($10 USD) will be used automatically first')
+            console.log('[ZERODEV] ℹ️ After credits are exhausted, charges will go to credit card')
+          }
+          
+          // Create ZeroDev paymaster client
+          paymasterClient = createZeroDevPaymasterClient({
+            chain: FORCED_CHAIN,
+            transport: http(paymasterUrl),
+          })
+          
+          console.log('[ZERODEV] ✅ ZeroDev paymaster client created', {
+            mode: useSelfFunded ? 'self-funded (mainnet)' : 'credit-card-billing',
+            chainId: FORCED_CHAIN.id,
+            note: useSelfFunded 
+              ? 'Make sure paymaster contract is funded on Celo Mainnet (42220)' 
+              : 'Using credit card billing'
+          })
+        }
         
         console.log('[ZERODEV] Creating Kernel account client...')
         
-        // Create Kernel client using ZeroDev SDK with ZeroDev paymaster
+        // Create Kernel client using ZeroDev SDK
+        // Smart wallets are created by ZeroDev, but paymaster can be Pimlico or ZeroDev
         const client = createKernelAccountClient({
           account,
           chain: FORCED_CHAIN,
-          bundlerTransport: http(bundlerUrl),
-          paymaster: paymasterClient, // ZeroDev paymaster client (self-funded)
+          bundlerTransport: http(bundlerUrl), // ZeroDev bundler (always)
+          paymaster: paymasterClient, // Pimlico or ZeroDev paymaster
           client: publicClient,
         })
         
-        console.log('[ZERODEV] ✅ ZeroDev paymaster configured - gasless transactions enabled')
+        console.log('[ZERODEV] ✅ Paymaster configured - gasless transactions enabled', {
+          paymaster: usePimlico ? 'Pimlico' : 'ZeroDev',
+          smartWallets: 'ZeroDev Kernel',
+          bundler: 'ZeroDev'
+        })
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)
         console.log("[ZERODEV] Chain ID:", await client.getChainId())

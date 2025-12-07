@@ -17,7 +17,7 @@ import Link from 'next/link'
 
 export function Footer() {
   return (
-    <footer className="bg-background border-t border-white/10">
+    <footer className="border-t border-white/10 relative z-10">
       <div className="container mx-auto px-6 py-16">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
           {/* Contact Form */}
@@ -46,7 +46,7 @@ export function Footer() {
               <div className="space-y-3">
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-mauve-500" />
-                  <span className="text-sm">contacto@motusdao.com</span>
+                  <span className="text-sm">contact@motusdao.org</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <Phone className="w-5 h-5 text-mauve-500" />
@@ -135,7 +135,7 @@ export function Footer() {
         <div className="mt-12 pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="text-sm text-muted-foreground mb-4 md:mb-0">
-              © 2024 MotusDAO. Todos los derechos reservados.
+              © 2026 MotusDAO. Todos los derechos reservados.
             </div>
             <div className="flex space-x-6 text-sm">
               <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">

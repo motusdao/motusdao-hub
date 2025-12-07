@@ -1,8 +1,9 @@
-import { createWalletClient, custom, parseUnits, encodeFunctionData, type Address } from 'viem'
+import { createWalletClient, custom, parseUnits, parseEther, encodeFunctionData, type Address } from 'viem'
 import { celoMainnet, CELO_STABLE_TOKENS } from './celo'
 import { getCeloExplorerUrl } from './celo'
 import type { ConnectedWallet } from '@privy-io/react-auth'
 import { getPrimaryWallet } from './wallet-utils'
+import type { KernelAccountClient } from '@zerodev/sdk'
 
 /**
  * Payment utilities for sending transactions with gas sponsorship
@@ -13,7 +14,7 @@ export interface PaymentParams {
   from: Address // User's wallet address
   to: Address // Recipient address (psychologist)
   amount: string // Amount in human-readable format (e.g., "10.5")
-  currency: 'CELO' | 'cUSD' | 'cEUR' // Currency type
+  currency: 'CELO' | 'USDT' | 'USDC' | 'cUSD' | 'cEUR' | 'cREAL' | 'cCOP' | 'PSY' | 'MOT' | 'cCAD' // Currency type
 }
 
 export interface PaymentResult {
@@ -188,6 +189,179 @@ export async function sendStablecoinPayment(
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Payment failed',
+    }
+  }
+}
+
+/**
+ * Send a payment using ZeroDev Kernel client (gasless transactions)
+ * Supports both native CELO and ERC20 tokens
+ * 
+ * @param kernelClient - The ZeroDev Kernel account client
+ * @param params - Payment parameters
+ * @returns Payment result with transaction hash
+ */
+export async function sendPaymentWithKernel(
+  kernelClient: KernelAccountClient,
+  params: PaymentParams
+): Promise<PaymentResult> {
+  try {
+    // Validate address
+    if (!params.to || !params.to.startsWith('0x') || params.to.length !== 42) {
+      return {
+        success: false,
+        error: 'Dirección de destino inválida',
+      }
+    }
+
+    // Validate amount
+    const amount = parseFloat(params.amount)
+    if (isNaN(amount) || amount <= 0) {
+      return {
+        success: false,
+        error: 'Monto inválido. Debe ser un número mayor a 0',
+      }
+    }
+
+    // Check if it's native CELO or ERC20 token
+    if (params.currency === 'CELO') {
+      // Native CELO transfer
+      const amountInWei = parseEther(params.amount)
+
+      console.log('🔄 Enviando transacción de CELO usando ZeroDev Kernel...')
+      console.log('📍 Destino:', params.to)
+      console.log('💰 Monto:', params.amount, 'CELO')
+
+      const userOpHash = await kernelClient.sendUserOperation({
+        calls: [{
+          to: params.to as `0x${string}`,
+          value: amountInWei,
+          data: '0x' as `0x${string}`,
+        }],
+      })
+
+      console.log('✅ User operation enviada, esperando confirmación...', userOpHash)
+
+      // Wait for the user operation to be included
+      const receipt = await kernelClient.waitForUserOperationReceipt({
+        hash: userOpHash
+      })
+
+      const hash = receipt?.receipt?.transactionHash
+
+      if (!hash) {
+        throw new Error('No se encontró el hash de transacción en el recibo')
+      }
+
+      console.log('✅ Transacción confirmada:', hash)
+
+      return {
+        success: true,
+        transactionHash: hash,
+        explorerUrl: getCeloExplorerUrl(hash, 'tx'),
+      }
+    } else {
+      // ERC20 token transfer
+      const tokenAddress = CELO_STABLE_TOKENS[params.currency as keyof typeof CELO_STABLE_TOKENS]
+      
+      if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {
+        return {
+          success: false,
+          error: `Dirección del contrato para ${params.currency} no configurada. Por favor, actualiza lib/celo.ts con la dirección correcta.`,
+        }
+      }
+
+      // ERC20 transfer function: transfer(address to, uint256 amount)
+      const amountInWei = parseUnits(params.amount, 18) // Most tokens have 18 decimals
+
+      const data = encodeFunctionData({
+        abi: [
+          {
+            name: 'transfer',
+            type: 'function',
+            stateMutability: 'nonpayable',
+            inputs: [
+              { name: 'to', type: 'address' },
+              { name: 'amount', type: 'uint256' },
+            ],
+            outputs: [{ name: '', type: 'bool' }],
+          },
+        ],
+        functionName: 'transfer',
+        args: [params.to as `0x${string}`, amountInWei],
+      })
+
+      console.log('🔄 Enviando transacción de token usando ZeroDev Kernel...')
+      console.log('📍 Token:', params.currency)
+      console.log('📍 Contrato:', tokenAddress)
+      console.log('📍 Destino:', params.to)
+      console.log('💰 Monto:', params.amount, params.currency)
+
+      const userOpHash = await kernelClient.sendUserOperation({
+        calls: [{
+          to: tokenAddress as `0x${string}`,
+          value: BigInt(0), // No value for ERC20 transfers
+          data: data as `0x${string}`,
+        }],
+      })
+
+      console.log('✅ User operation enviada, esperando confirmación...', userOpHash)
+
+      // Wait for the user operation to be included
+      const receipt = await kernelClient.waitForUserOperationReceipt({
+        hash: userOpHash
+      })
+
+      const hash = receipt?.receipt?.transactionHash
+
+      if (!hash) {
+        throw new Error('No se encontró el hash de transacción en el recibo')
+      }
+
+      console.log('✅ Transacción confirmada:', hash)
+
+      return {
+        success: true,
+        transactionHash: hash,
+        explorerUrl: getCeloExplorerUrl(hash, 'tx'),
+      }
+    }
+  } catch (error) {
+    console.error('❌ Error en el pago:', error)
+    
+    const errorMessage = error instanceof Error ? error.message : 'Error desconocido'
+    
+    // Check for common errors
+    if (errorMessage.toLowerCase().includes('fund') || 
+        errorMessage.toLowerCase().includes('balance') ||
+        errorMessage.toLowerCase().includes('insufficient')) {
+      return {
+        success: false,
+        error: `${errorMessage}. Asegúrate de tener fondos suficientes y que el paymaster esté financiado.`,
+      }
+    }
+    
+    // Check for ZeroDev billing limit errors
+    if (errorMessage.toLowerCase().includes('monthly') || 
+        errorMessage.toLowerCase().includes('sponsorship limit') ||
+        errorMessage.toLowerCase().includes('billing plan') ||
+        errorMessage.toLowerCase().includes('upgrade your billing')) {
+      const selfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
+      return {
+        success: false,
+        error: `⚠️ ZeroDev bloquea mainnet en el plan gratuito.\n\n` +
+          `Aunque tengas los contratos fondeados (Verifying: 0x7d5BC7..., ERC20: 0xEb2142...), ` +
+          `ZeroDev API no permite usar mainnet sin actualizar el plan.\n\n` +
+          `Opciones:\n` +
+          `1. Usar Pimlico como paymaster alternativo (recomendado - ver ZERODEV_MAINNET_LIMITATION.md)\n` +
+          `2. Actualizar plan de ZeroDev para usar mainnet\n` +
+          `3. Usar Alfajores (testnet) para desarrollo`,
+      }
+    }
+    
+    return {
+      success: false,
+      error: errorMessage,
     }
   }
 }

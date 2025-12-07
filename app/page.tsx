@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ADNBackdrop } from '@/components/three/ADNBackdrop'
+import FloatingLines from '@/components/three/FloatingLines'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
@@ -46,7 +47,7 @@ const featuredApps = [
   },
   {
     title: 'Pagos',
-    description: 'Sistema de pagos descentralizado',
+    description: 'Sistema de pagos descentralizado, sin comisiones y en tiempo real',
     icon: CreditCard,
     href: '/pagos',
     color: 'from-yellow-500 to-orange-600'
@@ -67,52 +68,72 @@ export default function Home() {
   })
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* 3D Background */}
-      <ADNBackdrop intensity={0.3} speed={0.5} />
+    <div className="relative min-h-screen overflow-hidden" style={{ background: 'transparent' }}>
+      {/* 3D Background - Only show when authenticated */}
+      {authenticated && (
+        <ADNBackdrop intensity={0.3} speed={0.5} />
+      )}
+      
+      {/* FloatingLines Background - Only show when NOT authenticated */}
+      {!authenticated && (
+        <div style={{ width: '100%', height: '100vh', position: 'fixed', top: 0, left: 0, zIndex: 0, opacity: 0.15 }}>
+          <FloatingLines 
+            enabledWaves={['top', 'middle', 'bottom']}
+            lineCount={5}
+            lineDistance={5}
+            bendRadius={5}
+            bendStrength={11}
+            interactive={true}
+            parallax={true}
+          />
+        </div>
+      )}
       
       {/* Hero Section - Only show when NOT authenticated */}
       {!authenticated && (
-        <Section className="relative z-10">
-          <div className="container mx-auto px-6 max-w-full">
+        <Section className="relative z-10" style={{ pointerEvents: 'none' }}>
+          <div className="container mx-auto px-6 max-w-full relative">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8 }}
-              className="text-center max-w-4xl mx-auto"
+              className="text-center max-w-4xl mx-auto relative z-10"
+              style={{ minHeight: '600px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}
             >
-              <div className="flex items-center justify-center mb-6">
-                <Sparkles className="w-8 h-8 text-mauve-500 mr-3" />
-                <GradientText as="h1" className="text-5xl md:text-7xl font-bold">
-                  MotusDAO Hub
-                </GradientText>
-              </div>
-              
-              <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-                Plataforma integral de salud mental que combina tecnología blockchain, 
-                inteligencia artificial y atención profesional para tu bienestar.
-              </p>
-
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <CTAButton 
-                  size="lg" 
-                  glow 
-                  className="group"
-                  onClick={() => {
-                    setShowEmailLogin(true)
-                  }}
-                >
-                  Comenzar Ahora
-                  <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
-                </CTAButton>
+              <GlassCard className="max-w-3xl mx-auto p-8 md:p-12" style={{ pointerEvents: 'auto' }}>
+                <div className="flex items-center justify-center mb-6">
+                  <Sparkles className="w-8 h-8 text-mauve-500 mr-3" />
+                  <GradientText as="h1" className="text-5xl md:text-7xl font-bold">
+                    MotusDAO Hub
+                  </GradientText>
+                </div>
                 
-                <Link href="/docs">
-                  <CTAButton variant="secondary" size="lg">
-                    <FileText className="w-5 h-5 mr-2" />
-                    Documentación
+                <p className="text-xl md:text-2xl text-muted-foreground mb-8 max-w-2xl mx-auto">
+                  Plataforma integral de salud mental que combina tecnología blockchain, 
+                  inteligencia artificial y atención profesional para tu bienestar.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                  <CTAButton 
+                    size="lg" 
+                    glow 
+                    className="group"
+                    onClick={() => {
+                      setShowEmailLogin(true)
+                    }}
+                  >
+                    Comenzar Ahora
+                    <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
                   </CTAButton>
-                </Link>
-              </div>
+                  
+                  <Link href="/docs">
+                    <CTAButton variant="secondary" size="lg">
+                      <FileText className="w-5 h-5 mr-2" />
+                      Documentación
+                    </CTAButton>
+                  </Link>
+                </div>
+              </GlassCard>
             </motion.div>
           </div>
         </Section>
