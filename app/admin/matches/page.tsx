@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { GradientText } from '@/components/ui/GradientText'
-import { CTAButton } from '@/components/ui/CTAButton'
 import { motion } from 'framer-motion'
 import { 
   Heart, 
