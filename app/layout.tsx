@@ -3,9 +3,11 @@ import { Inter, Jura } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Footer } from "@/components/layout/Footer";
 import { PrivyProviderWrapper } from "@/components/PrivyProviderWrapper";
+import { SidebarWrapper } from "@/components/layout/SidebarWrapper";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,10 +38,10 @@ export default function RootLayout({
           <ThemeProvider>
             <div className="min-h-screen bg-background overflow-x-hidden">
               <div className="flex min-h-screen max-w-full">
-                <Sidebar />
+                <SidebarWrapper />
                 <div className="flex-1 lg:ml-64 flex flex-col min-h-screen overflow-y-auto overflow-x-hidden relative z-10">
                   <Topbar />
-                  <main className="flex-1 pt-16 sm:pt-20 px-4 max-w-full relative z-10">
+                  <main className="flex-1 pt-16 sm:pt-20 max-w-full relative z-10">
                     {children}
                   </main>
                   <Footer />

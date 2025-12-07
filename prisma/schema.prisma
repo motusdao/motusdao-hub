@@ -13,6 +13,7 @@ datasource db {
 enum Role {
   usuario
   psm
+  admin
 }
 
 enum MatchStatus {
@@ -46,6 +47,7 @@ model User {
   smartWalletAddress    String?  @unique
   privyId               String?  @unique
   registrationCompleted Boolean  @default(false)
+  deletedAt             DateTime? // Soft delete: null = activo, fecha = eliminado
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

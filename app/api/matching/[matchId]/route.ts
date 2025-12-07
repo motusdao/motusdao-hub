@@ -3,9 +3,9 @@ import { prisma } from '@/lib/prisma'
 
 /**
  * PUT /api/matching/[matchId]
- * Updates match status (pause, end)
+ * Updates match status (pause, resume, end)
  * 
- * Body: { status: 'paused' | 'ended', reason?: string }
+ * Body: { status: 'active' | 'paused' | 'ended', reason?: string }
  */
 export async function PUT(
   request: NextRequest,
@@ -16,9 +16,9 @@ export async function PUT(
     const body = await request.json()
     const { status, reason } = body
 
-    if (!status || !['paused', 'ended'].includes(status)) {
+    if (!status || !['active', 'paused', 'ended'].includes(status)) {
       return NextResponse.json(
-        { error: 'status debe ser "paused" o "ended"' },
+        { error: 'status debe ser "active", "paused" o "ended"' },
         { status: 400 }
       )
     }
@@ -35,11 +35,11 @@ export async function PUT(
     }
 
     const updateData: {
-      status: 'paused' | 'ended'
-      endedAt?: Date
-      reason?: string
+      status: 'active' | 'paused' | 'ended'
+      endedAt?: Date | null
+      reason?: string | null
     } = {
-      status: status as 'paused' | 'ended'
+      status: status as 'active' | 'paused' | 'ended'
     }
 
     if (status === 'ended') {
@@ -47,6 +47,10 @@ export async function PUT(
       if (reason) {
         updateData.reason = reason
       }
+    } else if (status === 'active') {
+      // When reactivating, clear endedAt and reason if they exist
+      updateData.endedAt = null
+      updateData.reason = null
     }
 
     const updatedMatch = await prisma.match.update({
@@ -66,9 +70,15 @@ export async function PUT(
       }
     })
 
+    const statusMessages = {
+      active: 'reactivado',
+      paused: 'pausado',
+      ended: 'finalizado'
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Emparejamiento ${status === 'paused' ? 'pausado' : 'finalizado'} exitosamente`,
+      message: `Emparejamiento ${statusMessages[status]} exitosamente`,
       match: {
         id: updatedMatch.id,
         userId: updatedMatch.userId,
@@ -82,6 +92,59 @@ export async function PUT(
 
   } catch (error) {
     console.error('Error updating match:', error)
+    return NextResponse.json(
+      { error: 'Error interno del servidor' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * DELETE /api/matching/[matchId]
+ * Deletes a match (admin only, for cleaning test data)
+ */
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ matchId: string }> }
+) {
+  try {
+    const { matchId } = await params
+
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        sessions: {
+          select: { id: true }
+        }
+      }
+    })
+
+    if (!match) {
+      return NextResponse.json(
+        { error: 'Emparejamiento no encontrado' },
+        { status: 404 }
+      )
+    }
+
+    // Delete associated sessions first (if any)
+    if (match.sessions.length > 0) {
+      await prisma.session.deleteMany({
+        where: { matchId: matchId }
+      })
+    }
+
+    // Delete the match
+    await prisma.match.delete({
+      where: { id: matchId }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Emparejamiento eliminado exitosamente'
+    })
+
+  } catch (error) {
+    console.error('Error deleting match:', error)
     return NextResponse.json(
       { error: 'Error interno del servidor' },
       { status: 500 }

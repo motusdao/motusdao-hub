@@ -15,7 +15,12 @@
     "db:studio": "prisma studio",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "test:wallet": "node scripts/test-wallet.js",
-    "deploy:db": "node scripts/deploy-db.js"
+    "deploy:db": "node scripts/deploy-db.js",
+    "assign-admin": "tsx scripts/assign-admin.ts",
+    "create-admin": "tsx scripts/create-admin-user.ts",
+    "assign-admin-wallet": "tsx scripts/assign-admin-by-wallet.ts",
+    "create-admin-wallet": "tsx scripts/create-admin-with-wallets.ts",
+    "update-privy-id": "tsx scripts/update-privy-id.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

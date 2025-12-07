@@ -10,11 +10,16 @@ import { Video, RefreshCcw } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 
 type JitsiInitOptions = {
-  roomName: string
+  roomName?: string
+  room?: string
+  url?: string
   parentNode: HTMLElement
   width?: string | number
   height?: string | number
   jwt?: string
+  serverURL?: string
+  protocol?: string
+  scheme?: string
   configOverwrite?: Record<string, unknown>
   interfaceConfigOverwrite?: Record<string, unknown>
 }
@@ -26,7 +31,7 @@ type JitsiExternalAPI = {
 }
 
 type JitsiExternalAPIConstructor = new (
-  domain: string,
+  domainOrUrl: string,
   options: JitsiInitOptions,
 ) => JitsiExternalAPI
 
@@ -40,6 +45,18 @@ const JITSI_DEFAULT_DOMAIN =
   process.env.NEXT_PUBLIC_JITSI_DOMAIN || 'meet.jit.si'
 const JITSI_ROOM_PREFIX =
   process.env.NEXT_PUBLIC_JITSI_ROOM_PREFIX || 'motusdao-demo-'
+
+// Determine protocol based on domain (http for localhost, https for others)
+// Also handles cases where domain already includes protocol
+const getJitsiProtocol = (domain: string) => {
+  // If domain already has a protocol, extract it
+  if (domain.includes('://')) {
+    const url = new URL(domain)
+    return url.protocol.replace(':', '') // Remove the colon
+  }
+  // Otherwise, determine based on domain
+  return domain.includes('localhost') || domain.includes('127.0.0.1') ? 'http' : 'https'
+}
 
 function buildFallbackRoom() {
   // Sala pseudo-aleatoria para pruebas manuales si no se pasa nada por query
@@ -128,10 +145,12 @@ function VideochatInner() {
           const data = await response.json()
           if (data.token) {
             setJwtToken(data.token)
+            console.log('✅ JWT token generado correctamente')
           }
         } else {
           // If JWT is not configured, that's okay - we'll use unauthenticated mode
-          console.log('JWT token not available, using unauthenticated mode')
+          const errorData = await response.json().catch(() => ({}))
+          console.warn('⚠️ JWT token no disponible:', errorData.error || 'usando modo sin autenticación')
           setJwtToken(null)
         }
       } catch (error) {
@@ -160,8 +179,38 @@ function VideochatInner() {
       api.dispose()
     }
 
-    const options: JitsiInitOptions = {
+    // Extract domain and protocol properly - handle both "localhost:8080" and full URLs
+    let jitsiDomain: string
+    let protocol: string
+    
+    if (roomInfo.domain.includes('://')) {
+      // If it's already a full URL, extract both protocol and host
+      const url = new URL(roomInfo.domain)
+      protocol = url.protocol.replace(':', '') // Remove the colon (http: -> http)
+      jitsiDomain = url.host // This includes port if present (localhost:8080)
+    } else {
+      // If it's just "localhost:8080" or similar, determine protocol
+      protocol = getJitsiProtocol(roomInfo.domain)
+      jitsiDomain = roomInfo.domain
+    }
+
+    // Build the full room URL with correct protocol
+    // Ensure we don't double up on protocol
+    const fullRoomUrl = `${protocol}://${jitsiDomain}/${roomInfo.roomName}`
+
+    console.log('🔍 Jitsi Config:', { 
+      domain: jitsiDomain, 
+      protocol, 
       roomName: roomInfo.roomName,
+      fullRoomUrl,
+      jwtToken: jwtToken ? `${jwtToken.substring(0, 20)}...` : 'none',
+      isJitsiReady,
+      isLoadingToken
+    })
+    console.log('🔍 Full Room URL:', fullRoomUrl)
+
+    const options: JitsiInitOptions = {
+      // Don't use roomName when passing full URL
       parentNode: containerRef.current,
       width: '100%',
       height: '100%',
@@ -183,11 +232,59 @@ function VideochatInner() {
       },
     }
 
-    const instance = new window.JitsiMeetExternalAPI(roomInfo.domain, options)
-    setApi(instance)
+    // Pass the full URL as first parameter - this should work for localhost
+    // Jitsi will parse it and use the protocol from the URL
+    console.log('🚀 Inicializando Jitsi Meet con:', {
+      url: fullRoomUrl,
+      hasJWT: !!jwtToken,
+      options: {
+        ...options,
+        jwt: jwtToken ? `${jwtToken.substring(0, 20)}...` : undefined
+      }
+    })
+    
+    let instance: JitsiExternalAPI | null = null
+    
+    try {
+      instance = new window.JitsiMeetExternalAPI(fullRoomUrl, options)
+      setApi(instance)
+
+      // Listen for authentication errors
+      instance.on('videoConferenceJoined', () => {
+        console.log('✅ Conectado exitosamente a la sala')
+        setScriptError(null) // Clear any previous errors
+      })
+
+      instance.on('participantJoined', () => {
+        console.log('👤 Participante se unió')
+      })
+
+      instance.on('authFailed', () => {
+        console.error('❌ Error de autenticación JWT')
+        setScriptError('Error de autenticación. Verifica que JITSI_APP_SECRET coincida con JWT_APP_SECRET del servidor.')
+      })
+
+      instance.on('readyToClose', () => {
+        console.log('Sala cerrada')
+      })
+
+      instance.on('errorOccurred', (error: any) => {
+        console.error('❌ Error en Jitsi:', error)
+        setScriptError(`Error en Jitsi: ${error?.error || 'Error desconocido'}`)
+      })
+
+      instance.on('ready', () => {
+        console.log('✅ Jitsi Meet está listo')
+      })
+    } catch (error) {
+      console.error('❌ Error al crear instancia de Jitsi:', error)
+      setScriptError(`Error al inicializar Jitsi: ${error instanceof Error ? error.message : 'Error desconocido'}`)
+    }
 
     return () => {
-      instance?.dispose()
+      if (instance) {
+        instance.dispose()
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isJitsiReady, roomInfo, jwtToken, isLoadingToken])
@@ -206,12 +303,32 @@ function VideochatInner() {
   return (
     <>
       <Script
-        src={`https://${JITSI_DEFAULT_DOMAIN}/external_api.js`}
+        src={(() => {
+          // Build script URL properly
+          const protocol = getJitsiProtocol(JITSI_DEFAULT_DOMAIN)
+          const domain = JITSI_DEFAULT_DOMAIN.includes('://') 
+            ? new URL(JITSI_DEFAULT_DOMAIN).host 
+            : JITSI_DEFAULT_DOMAIN
+          const scriptUrl = `${protocol}://${domain}/external_api.js`
+          console.log('📜 Loading Jitsi script from:', scriptUrl)
+          return scriptUrl
+        })()}
         strategy="afterInteractive"
         onReady={() => setIsJitsiReady(true)}
         onError={(e) => {
-          console.error('Error cargando Jitsi external_api.js', e)
-          setScriptError('No se pudo cargar la librería de Jitsi. Revisa el dominio configurado.')
+          const errorMsg = e instanceof Error ? e.message : String(e) || 'Error desconocido'
+          const protocol = getJitsiProtocol(JITSI_DEFAULT_DOMAIN)
+          const domain = JITSI_DEFAULT_DOMAIN.includes('://') 
+            ? new URL(JITSI_DEFAULT_DOMAIN).host 
+            : JITSI_DEFAULT_DOMAIN
+          const scriptUrl = `${protocol}://${domain}/external_api.js`
+          console.error('Error cargando Jitsi external_api.js:', {
+            error: errorMsg,
+            domain,
+            protocol,
+            url: scriptUrl,
+          })
+          setScriptError(`No se pudo cargar la librería de Jitsi desde ${domain}. Verifica que el servidor esté corriendo.`)
         }}
       />
 
@@ -248,8 +365,14 @@ function VideochatInner() {
                 size="sm"
                 onClick={() => {
                   if (typeof window !== 'undefined' && roomInfo) {
+                    // Use the same protocol logic as the main URL construction
+                    const protocol = getJitsiProtocol(roomInfo.domain)
+                    let domain = roomInfo.domain
+                    if (domain.includes('://')) {
+                      domain = new URL(domain).host
+                    }
                     window.navigator.clipboard
-                      ?.writeText(`https://${roomInfo.domain}/${roomInfo.roomName}`)
+                      ?.writeText(`${protocol}://${domain}/${roomInfo.roomName}`)
                       .catch(() => {})
                   }
                 }}

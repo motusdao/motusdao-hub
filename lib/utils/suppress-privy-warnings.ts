@@ -1,9 +1,10 @@
 /**
- * Utility to suppress Privy hydration warnings
- * These warnings occur because Privy renders <div> inside <p> tags,
- * which is invalid HTML but doesn't affect functionality.
+ * Utility to suppress Privy-related React warnings
+ * These warnings occur because:
+ * 1. Privy renders <div> inside <p> tags, which is invalid HTML but doesn't affect functionality
+ * 2. Privy's internal components may render lists without keys, which triggers React warnings
  * 
- * This suppresses the warnings in development to clean up console output.
+ * This suppresses these warnings in development to clean up console output.
  * In production, React handles these gracefully and they don't appear in user consoles.
  */
 
@@ -12,27 +13,23 @@ if (typeof window !== 'undefined') {
   const isDevelopment = process.env.NODE_ENV === 'development';
   
   if (isDevelopment) {
-    const originalError = console.error;
+    // Store the original console.error before we override it
+    const originalError = console.error.bind(console);
     
-    console.error = (...args: unknown[]) => {
-      // Suppress the specific Privy hydration warning
+    console.error = function(...args: unknown[]) {
+      // Only check string arguments to avoid circular reference issues
+      // React warnings are typically the first argument as a string
       const firstArg = args[0];
+      const message = typeof firstArg === 'string' ? firstArg : '';
       
-      // Check if this is the Privy hydration warning
+      // Check if this is the Privy hydration warning or a key prop warning from Privy
       const isPrivyWarning = 
-        (typeof firstArg === 'string' &&
-         (firstArg.includes('cannot be a descendant of <p>') ||
-          firstArg.includes('cannot appear as a descendant of <p>') ||
-          firstArg.includes('HelpTextContainer') ||
-          firstArg.includes('validateDOMNesting'))) ||
-        (typeof firstArg === 'object' &&
-         firstArg !== null &&
-         'props' in firstArg &&
-         typeof firstArg.props === 'object' &&
-         firstArg.props !== null &&
-         'children' in firstArg.props &&
-         typeof firstArg.props.children === 'string' &&
-         firstArg.props.children.includes('HelpTextContainer'));
+        message.includes('cannot be a descendant of <p>') ||
+        message.includes('cannot appear as a descendant of <p>') ||
+        message.includes('HelpTextContainer') ||
+        message.includes('validateDOMNesting') ||
+        (message.includes('Each child in a list should have a unique "key" prop') &&
+         message.includes('Check the render method of'));
       
       if (isPrivyWarning) {
         // Suppress this specific warning - it's a known Privy issue that doesn't affect functionality
@@ -40,7 +37,8 @@ if (typeof window !== 'undefined') {
       }
       
       // Call original console.error for all other messages
-      originalError.apply(console, args);
+      // Using bind ensures we call the original function, not our wrapper
+      originalError(...args);
     };
   }
 }

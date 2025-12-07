@@ -52,9 +52,13 @@ export function Topbar() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 })
   const roleButtonRef = useRef<HTMLButtonElement>(null)
 
-  const handleRoleChange = (newRole: 'usuario' | 'psm') => {
+  const handleRoleChange = (newRole: 'usuario' | 'psm' | 'admin') => {
     setRole(newRole)
     setShowRoleDropdown(false)
+    // Si cambia a admin, redirigir al dashboard admin
+    if (newRole === 'admin') {
+      window.location.href = '/admin'
+    }
   }
 
   const handleRoleKeyDown = (e: React.KeyboardEvent) => {
@@ -95,7 +99,7 @@ export function Topbar() {
         if (response.ok) {
           const data = await response.json()
           if (data.user?.role) {
-            const dbRole = data.user.role as 'usuario' | 'psm'
+            const dbRole = data.user.role as 'usuario' | 'psm' | 'admin'
             // Only update if the role is different from current store role
             // This syncs the toggle with the actual account type from registration
             if (dbRole !== role) {
@@ -212,6 +216,18 @@ export function Topbar() {
                       )}
                     >
                       PSM
+                    </button>
+                    <button
+                      onClick={() => handleRoleChange('admin')}
+                      className={cn(
+                        "w-full rounded-xl px-3 py-2 text-sm text-foreground/90 hover:bg-white/10 hover:text-foreground cursor-pointer focus:bg-white/15 focus:outline-none transition-colors flex items-center space-x-2",
+                        role === 'admin' 
+                          ? "bg-white/15 text-foreground" 
+                          : "text-foreground/90"
+                      )}
+                    >
+                      <Shield className="w-3 h-3" />
+                      <span>Admin</span>
                     </button>
                   </div>
                 </div>
