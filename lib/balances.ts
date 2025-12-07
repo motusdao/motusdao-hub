@@ -106,8 +106,8 @@ export async function getAllTokenBalances(
     .map(async (tokenSymbol) => {
       const tokenAddress = CELO_STABLE_TOKENS[tokenSymbol as keyof typeof CELO_STABLE_TOKENS]
       
-      // Skip if token address is not configured or is zero address
-      if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {
+      // Skip if token address is not configured
+      if (!tokenAddress) {
         return null
       }
 

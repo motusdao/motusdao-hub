@@ -264,7 +264,7 @@ export async function sendPaymentWithKernel(
       // ERC20 token transfer
       const tokenAddress = CELO_STABLE_TOKENS[params.currency as keyof typeof CELO_STABLE_TOKENS]
       
-      if (!tokenAddress || tokenAddress === '0x0000000000000000000000000000000000000000') {
+      if (!tokenAddress) {
         return {
           success: false,
           error: `Dirección del contrato para ${params.currency} no configurada. Por favor, actualiza lib/celo.ts con la dirección correcta.`,

@@ -17,7 +17,7 @@ import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { CTAButton } from '@/components/ui/CTAButton'
 import { useOnboardingStore, isValidCeloAddress } from '@/lib/onboarding-store'
-import { getCeloChain } from '@/lib/celo'
+import { celoMainnet } from '@/lib/celo'
 import { 
   getEOAAddress
 } from '@/lib/wallet-utils'
@@ -88,7 +88,7 @@ export function StepConnect({ onNext, onBack }: StepConnectProps) {
       const privyEmail = user.email?.address || user.google?.email
       const formEmail = watchedEmail || ''
       const emailToStore = privyEmail || formEmail
-      const celoChain = getCeloChain()
+      const celoChain = celoMainnet
       
       // Determine wallet type based on whether it's external or embedded
       const externalWallet = wallets.find(w => w.walletClientType !== 'privy')

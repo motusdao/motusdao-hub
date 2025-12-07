@@ -14,6 +14,7 @@ type JitsiInitOptions = {
   parentNode: HTMLElement
   width?: string | number
   height?: string | number
+  jwt?: string
   configOverwrite?: Record<string, unknown>
   interfaceConfigOverwrite?: Record<string, unknown>
 }
@@ -52,6 +53,8 @@ function VideochatInner() {
   const [api, setApi] = useState<JitsiExternalAPI | null>(null)
   const [scriptError, setScriptError] = useState<string | null>(null)
   const [roomInfo, setRoomInfo] = useState<{ domain: string; roomName: string } | null>(null)
+  const [jwtToken, setJwtToken] = useState<string | null>(null)
+  const [isLoadingToken, setIsLoadingToken] = useState(false)
   const searchParams = useSearchParams()
 
   // Resolver dominio y roomName sólo en el cliente para evitar mismatches de SSR
@@ -102,27 +105,81 @@ function VideochatInner() {
     return () => clearInterval(interval)
   }, [isJitsiReady])
 
+  // Fetch JWT token if JWT is enabled
+  useEffect(() => {
+    if (!roomInfo) return
+
+    const fetchJwtToken = async () => {
+      setIsLoadingToken(true)
+      try {
+        const response = await fetch('/api/jitsi/token', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            roomName: roomInfo.roomName,
+            userId: 'user', // TODO: Get from auth context
+            userName: 'Usuario',
+          }),
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.token) {
+            setJwtToken(data.token)
+          }
+        } else {
+          // If JWT is not configured, that's okay - we'll use unauthenticated mode
+          console.log('JWT token not available, using unauthenticated mode')
+          setJwtToken(null)
+        }
+      } catch (error) {
+        console.error('Error fetching JWT token:', error)
+        setJwtToken(null)
+      } finally {
+        setIsLoadingToken(false)
+      }
+    }
+
+    // Only fetch token if JWT is enabled (check if env vars are set)
+    // In production, you might want to always try to fetch it
+    fetchJwtToken()
+  }, [roomInfo])
+
   useEffect(() => {
     if (!isJitsiReady) return
     if (!roomInfo) return
     if (!containerRef.current) return
     if (!window.JitsiMeetExternalAPI) return
+    // Wait for token to load (or skip if not using JWT)
+    if (isLoadingToken) return
 
     // Limpia instancias previas si se re-renderiza
     if (api) {
       api.dispose()
     }
 
-    const options = {
+    const options: JitsiInitOptions = {
       roomName: roomInfo.roomName,
       parentNode: containerRef.current,
       width: '100%',
       height: '100%',
+      ...(jwtToken && { jwt: jwtToken }),
       configOverwrite: {
-        // Aquí podemos luego ajustar duración, grabación, etc.
+        // Enable longer sessions (remove 5-minute limit)
+        // This requires a self-hosted Jitsi server
+        startWithAudioMuted: false,
+        startWithVideoMuted: false,
+        enableWelcomePage: false,
+        enableClosePage: false,
+        // Remove time limits
+        maxDuration: 0, // 0 = unlimited
       },
       interfaceConfigOverwrite: {
         // Configuraciones de UI opcionales
+        SHOW_JITSI_WATERMARK: false,
+        SHOW_WATERMARK_FOR_GUESTS: false,
       },
     }
 
@@ -133,7 +190,7 @@ function VideochatInner() {
       instance?.dispose()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isJitsiReady, roomInfo])
+  }, [isJitsiReady, roomInfo, jwtToken, isLoadingToken])
 
   const handleReload = () => {
     if (!containerRef.current) return
@@ -211,9 +268,9 @@ function VideochatInner() {
           </div>
 
           <div className="relative flex-1 rounded-xl overflow-hidden bg-black">
-            {!isJitsiReady && (
+            {(!isJitsiReady || isLoadingToken) && (
               <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-                {scriptError || 'Cargando componente de video...'}
+                {scriptError || isLoadingToken ? 'Configurando sala segura...' : 'Cargando componente de video...'}
               </div>
             )}
             <div ref={containerRef} className="w-full h-full" />
