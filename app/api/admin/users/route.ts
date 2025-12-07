@@ -1,23 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-// Helper to check admin access
-async function checkAdminAccess(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const privyId = searchParams.get('privyId') || request.headers.get('x-privy-id')
-  
-  if (!privyId) return null
-
-  const user = await prisma.user.findUnique({
-    where: { privyId },
-    select: { role: true, deletedAt: true }
-  })
-
-  // Only allow active (non-deleted) admin users
-  if (!user || user.deletedAt || user.role !== 'admin') return null
-  
-  return user
-}
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,7 +24,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: any = {}
+    const where: Prisma.UserWhereInput = {}
     
     // Filter by deletion status
     if (showDeleted) {
@@ -52,8 +35,8 @@ export async function GET(request: NextRequest) {
       where.deletedAt = null
     }
     
-    if (role) {
-      where.role = role
+    if (role && ['usuario', 'psm', 'admin'].includes(role)) {
+      where.role = role as 'usuario' | 'psm' | 'admin'
     }
 
     // Get users with related data first (we'll filter in memory if search is needed)

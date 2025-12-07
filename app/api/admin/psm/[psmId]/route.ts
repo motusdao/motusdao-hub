@@ -64,13 +64,8 @@ export async function DELETE(
       )
     }
 
-    // Prevent deleting admin users
-    if (psm.role === 'admin') {
-      return NextResponse.json(
-        { error: 'No se pueden eliminar usuarios administradores' },
-        { status: 403 }
-      )
-    }
+    // Note: Since we've already verified the role is 'psm', 
+    // we don't need to check for 'admin' as it's impossible at this point
 
     // Delete the PSM user (cascade will handle related data)
     // Prisma will automatically delete:

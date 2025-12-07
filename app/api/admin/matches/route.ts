@@ -1,20 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-
-// Helper to check admin access
-async function checkAdminAccess(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const privyId = searchParams.get('privyId') || request.headers.get('x-privy-id')
-  
-  if (!privyId) return null
-
-  const user = await prisma.user.findUnique({
-    where: { privyId },
-    select: { role: true }
-  })
-
-  return user?.role === 'admin' ? user : null
-}
+import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,10 +23,10 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: any = {}
+    const where: Prisma.MatchWhereInput = {}
     
     if (status && ['active', 'paused', 'ended'].includes(status)) {
-      where.status = status
+      where.status = status as 'active' | 'paused' | 'ended'
     }
 
     // Get matches with related data

@@ -2,8 +2,6 @@ import type { Metadata } from "next";
 import { Inter, Jura } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { Footer } from "@/components/layout/Footer";
 import { PrivyProviderWrapper } from "@/components/PrivyProviderWrapper";

@@ -26,6 +26,8 @@ type JitsiInitOptions = {
 
 type JitsiExternalAPI = {
   dispose: () => void
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  on: (event: string, callback: (...args: any[]) => void) => void
   // We only use a tiny subset of the API in this page; the rest is left as unknown
   [key: string]: unknown
 }

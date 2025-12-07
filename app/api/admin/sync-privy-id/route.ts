@@ -63,10 +63,10 @@ export async function POST(request: NextRequest) {
         privyId: updatedUser.privyId
       }
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Error syncing privyId:', error)
     
-    if (error.code === 'P2002') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === 'P2002') {
       return NextResponse.json(
         { error: 'Este privyId ya está asignado a otro usuario' },
         { status: 409 }

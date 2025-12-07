@@ -70,7 +70,7 @@ export async function PUT(
       }
     })
 
-    const statusMessages = {
+    const statusMessages: Record<'active' | 'paused' | 'ended', string> = {
       active: 'reactivado',
       paused: 'pausado',
       ended: 'finalizado'
@@ -78,7 +78,7 @@ export async function PUT(
 
     return NextResponse.json({
       success: true,
-      message: `Emparejamiento ${statusMessages[status]} exitosamente`,
+      message: `Emparejamiento ${statusMessages[status as 'active' | 'paused' | 'ended']} exitosamente`,
       match: {
         id: updatedMatch.id,
         userId: updatedMatch.userId,
