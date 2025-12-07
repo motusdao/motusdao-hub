@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { ReactNode, MouseEventHandler } from "react"
+import { ReactNode, MouseEventHandler, CSSProperties } from "react"
 
 interface GlassCardProps {
   children: ReactNode
@@ -7,6 +7,7 @@ interface GlassCardProps {
   variant?: 'default' | 'strong'
   hover?: boolean
   onClick?: MouseEventHandler<HTMLDivElement>
+  style?: CSSProperties
 }
 
 export function GlassCard({ 
@@ -15,6 +16,7 @@ export function GlassCard({
   variant = 'default',
   hover = false,
   onClick,
+  style,
 }: GlassCardProps) {
   return (
     <div
@@ -27,6 +29,7 @@ export function GlassCard({
         className,
       )}
       onClick={onClick}
+      style={style}
     >
       {children}
     </div>

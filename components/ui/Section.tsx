@@ -1,18 +1,20 @@
 import { cn } from "@/lib/utils"
-import { ReactNode } from "react"
+import { ReactNode, CSSProperties } from "react"
 
 interface SectionProps {
   children: ReactNode
   className?: string
   id?: string
   padding?: 'sm' | 'md' | 'lg' | 'xl'
+  style?: CSSProperties
 }
 
 export function Section({ 
   children, 
   className, 
   id,
-  padding = 'lg' 
+  padding = 'lg',
+  style
 }: SectionProps) {
   const paddingClasses = {
     sm: 'py-8',
@@ -29,6 +31,7 @@ export function Section({
         paddingClasses[padding],
         className
       )}
+      style={style}
     >
       {children}
     </section>
