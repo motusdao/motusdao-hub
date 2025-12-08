@@ -205,10 +205,12 @@ export function ZeroDevSmartWalletProvider({
           // Use ZeroDev Paymaster (fallback)
           const useSelfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
           
-          // IMPORTANT: Try using v3 API endpoint (same as bundler) which may handle chainId better
+          // IMPORTANT: Paymaster uses v2 API (not v3 like bundler)
+          // v2 format: /api/v2/paymaster/{projectId}?selfFunded=true
+          // v3 format doesn't have /paymaster endpoint (causes 404)
           const paymasterUrl = useSelfFunded
-            ? `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}/paymaster?selfFunded=true`
-            : `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}/paymaster`
+            ? `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}?selfFunded=true&chainId=${FORCED_CHAIN.id}`
+            : `https://rpc.zerodev.app/api/v2/paymaster/${zeroDevProjectId}?chainId=${FORCED_CHAIN.id}`
           
           console.log('[ZERODEV] ⚙️ Configuration:', {
             projectId: zeroDevProjectId.substring(0, 8) + '...',
