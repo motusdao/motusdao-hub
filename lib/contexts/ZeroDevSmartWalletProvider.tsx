@@ -217,10 +217,18 @@ export function ZeroDevSmartWalletProvider({
                   console.error('[ZERODEV] ❌ Pimlico bundler proxy error:', response.status, errorData)
                   
                   // Check for API key configuration error
-                  const errorMessage = errorData.error?.message || errorData.error || 'Unknown error'
-                  if (typeof errorMessage === 'string' && (
-                      errorMessage.includes('Pimlico API key not configured') || 
-                      errorMessage.includes('PIMLICO_API_KEY not configured'))) {
+                  // Handle both string and object error formats
+                  let errorMessage: string = 'Unknown error'
+                  if (errorData.error) {
+                    if (typeof errorData.error === 'string') {
+                      errorMessage = errorData.error
+                    } else if (errorData.error.message) {
+                      errorMessage = errorData.error.message
+                    }
+                  }
+                  
+                  if (errorMessage.includes('Pimlico API key not configured') || 
+                      errorMessage.includes('PIMLICO_API_KEY not configured')) {
                     throw new Error(
                       'PIMLICO_API_KEY not configured in Vercel environment variables. ' +
                       'Pimlico bundler is REQUIRED for production. ' +
@@ -228,7 +236,7 @@ export function ZeroDevSmartWalletProvider({
                     )
                   }
                   
-                  throw new Error(`Pimlico bundler proxy error: ${response.status} ${typeof errorMessage === 'string' ? errorMessage : 'Unknown error'}`)
+                  throw new Error(`Pimlico bundler proxy error: ${response.status} ${errorMessage}`)
                 }
 
                 return response
