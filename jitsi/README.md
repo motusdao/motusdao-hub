@@ -196,3 +196,4 @@ If you encounter issues:
 3. Test with a simple room first
 4. Check the official Jitsi documentation
 
+

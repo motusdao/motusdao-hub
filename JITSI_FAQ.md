@@ -225,3 +225,4 @@ npm run dev
 - Configurar subdominio `videochat.motusdao.org`
 - Configurar variables en Vercel
 
+

@@ -56,3 +56,4 @@ DATABASE_URL="postgresql://postgres.ryjkpaiknsnjyydxwugl:0199384jjdjdn@aws-1-us-
 **NO** configures `DIRECT_URL` en Vercel, solo se usa localmente para migraciones.
 
 
+

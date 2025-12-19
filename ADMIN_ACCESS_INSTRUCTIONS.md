@@ -113,3 +113,4 @@ Este comando mostrará:
 4. **Seguridad**: Asegúrate de mantener tu wallet segura. Solo usuarios con rol `admin` pueden acceder al dashboard.
 
 
+

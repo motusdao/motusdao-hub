@@ -81,3 +81,4 @@ echo "3. Reinicia el servidor Jitsi: cd $JITSI_DIR && docker-compose restart"
 echo "4. Reinicia Next.js: npm run dev"
 
 
+

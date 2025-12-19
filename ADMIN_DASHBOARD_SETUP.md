@@ -249,3 +249,4 @@ Para completar el dashboard, se deben implementar:
 - Ver `app/admin/` para la estructura del dashboard
 
 
+

@@ -162,3 +162,4 @@ DATABASE_URL="postgres://postgres.ryjkpaiknsnjyydxwugl:[password]@aws-0-us-west-
 - [ ] Probé `/api/admin/matches` y ya no da error 500
 
 
+

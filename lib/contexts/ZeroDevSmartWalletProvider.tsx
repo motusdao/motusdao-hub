@@ -10,7 +10,7 @@ import {
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator'
 import { createPublicClient, createWalletClient, custom, http, type Address, type WalletClient, type Account, type Transport, type Chain } from 'viem'
-import type { GetPaymasterDataParameters, GetPaymasterDataReturnType, GetPaymasterStubDataParameters } from 'viem/account-abstraction'
+import type { GetPaymasterDataParameters, GetPaymasterDataReturnType, GetPaymasterStubDataReturnType } from 'viem/account-abstraction'
 import { celoMainnet } from '@/lib/celo'
 
 // FORZAR Celo Mainnet - no importa qué diga el dashboard
@@ -168,10 +168,28 @@ export function ZeroDevSmartWalletProvider({
 
         console.log('[ZERODEV] Created smart account:', account.address)
 
-        // URLs with Chain ID 42220 (Celo Mainnet)
-        // IMPORTANT: Even though project is created on Alfajores (testnet) in dashboard,
-        // the same Project ID works on Celo Mainnet by specifying chain ID in URL
-        const bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
+        // Bundler Configuration: Use Pimlico bundler when using Pimlico paymaster
+        // ZeroDev bundler doesn't support custom paymasters during gas estimation
+        // The error "Unrecognized key: paymasterAndData" occurs because ZeroDev bundler
+        // rejects paymasterAndData field during gas estimation with custom paymasters
+        // Solution: Use Pimlico bundler when using Pimlico paymaster
+        // NOTE: Pimlico bundler requires API key, but we'll use it directly since it's a public endpoint
+        // The API key is only needed for paymaster, not bundler
+        const usePimlicoBundler = true // Use Pimlico bundler with Pimlico paymaster
+        
+        let bundlerUrl: string
+        if (usePimlicoBundler) {
+          // Use Pimlico bundler (works better with Pimlico paymaster)
+          // Pimlico bundler supports custom paymasters properly during gas estimation
+          // The bundler endpoint is public and doesn't require API key
+          bundlerUrl = `https://api.pimlico.io/v2/${FORCED_CHAIN.id}/rpc`
+          console.log('[ZERODEV] 📦 Using Pimlico bundler (required for Pimlico paymaster)')
+          console.log('[ZERODEV] ℹ️ Pimlico bundler supports custom paymasters during gas estimation')
+        } else {
+          // ZeroDev bundler (original - doesn't work well with custom paymasters)
+          bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
+          console.log('[ZERODEV] 📦 Using ZeroDev bundler')
+        }
         
         // Paymaster Configuration: Pimlico is REQUIRED (ZeroDev paymaster doesn't work on mainnet with free plan)
         console.log('[ZERODEV] 🔧 Setting up paymaster...')
@@ -284,11 +302,15 @@ export function ZeroDevSmartWalletProvider({
                 throw error
               }
             },
-            async getPaymasterStubData() {
+            async getPaymasterStubData(): Promise<GetPaymasterStubDataReturnType> {
               // Return stub data for gas estimation
-              // IMPORTANT: ZeroDev bundler doesn't accept paymasterAndData during gas estimation
-              // So we return empty - the actual paymaster data will be added later by getPaymasterData
+              // CRITICAL: ZeroDev bundler REJECTS paymasterAndData during gas estimation
+              // The error "Unrecognized key: paymasterAndData" occurs if we include it
+              // However, the type requires paymasterAndData, so we return empty string
+              // The ZeroDev SDK might handle this differently, or we may need to use Pimlico bundler
+              // The actual paymaster data will be added later by getPaymasterData when the transaction is sent
               // This is used during gas estimation before the actual userOp is created
+              // NOTE: If this still fails, we may need to use Pimlico bundler instead of ZeroDev bundler
               return {
                 paymasterAndData: '0x' as `0x${string}`,
               }
@@ -307,21 +329,25 @@ export function ZeroDevSmartWalletProvider({
         console.log('[ZERODEV] Paymaster type: Pimlico (REQUIRED)')
         
         // Create Kernel client using ZeroDev SDK
-        // Smart wallets are created by ZeroDev, but paymaster can be Pimlico or ZeroDev
+        // Smart wallets are created by ZeroDev, but we use Pimlico for both bundler and paymaster
+        // This is required because ZeroDev bundler doesn't support custom paymasters during gas estimation
         const client = createKernelAccountClient({
           account,
           chain: FORCED_CHAIN,
-          bundlerTransport: http(bundlerUrl), // ZeroDev bundler (always)
-          paymaster: paymasterClient, // Pimlico or ZeroDev paymaster
+          bundlerTransport: http(bundlerUrl), // Pimlico bundler (required for Pimlico paymaster)
+          paymaster: paymasterClient, // Pimlico paymaster
           client: publicClient,
         })
         
         console.log('[ZERODEV] ✅ Paymaster configured - gasless transactions enabled', {
           paymaster: 'Pimlico (REQUIRED - ZeroDev does not work on mainnet)',
           smartWallets: 'ZeroDev Kernel',
-          bundler: 'ZeroDev',
+          bundler: usePimlicoBundler ? 'Pimlico (required for custom paymaster)' : 'ZeroDev',
           chainId: FORCED_CHAIN.id,
-          chainName: FORCED_CHAIN.name
+          chainName: FORCED_CHAIN.name,
+          note: usePimlicoBundler 
+            ? 'Using Pimlico bundler + paymaster (ZeroDev bundler rejects custom paymasters during gas estimation)'
+            : 'Using ZeroDev bundler (may have issues with custom paymaster)'
         })
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)

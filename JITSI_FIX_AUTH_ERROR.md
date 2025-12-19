@@ -129,3 +129,4 @@ Deberías recibir un JSON con `{"success":true,"token":"..."}`
 4. **Prueba crear una sala directamente en `http://localhost:8080`** (sin Next.js)
 
 
+

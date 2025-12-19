@@ -49,3 +49,4 @@ Si recibes "autenticación falló", verifica:
 4. ✅ Reiniciaste el servidor Jitsi después de cambiar variables: `docker-compose restart`
 
 
+

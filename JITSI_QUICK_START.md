@@ -68,3 +68,4 @@ Follow the detailed guide in `JITSI_SETUP.md` to:
 - Check server logs if rooms aren't working
 
 
+

@@ -161,3 +161,4 @@ Antes de pasar a producción, verifica:
 Una vez que todo funcione en local, sigue la guía en `JITSI_SETUP.md` para configurar en producción con un dominio real.
 
 
+
