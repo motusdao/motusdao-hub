@@ -168,89 +168,95 @@ export function ZeroDevSmartWalletProvider({
 
         console.log('[ZERODEV] Created smart account:', account.address)
 
-        // Bundler Configuration: Use Pimlico bundler when using Pimlico paymaster
-        // ZeroDev bundler doesn't support custom paymasters during gas estimation
-        // The error "Unrecognized key: paymasterAndData" occurs because ZeroDev bundler
-        // rejects paymasterAndData field during gas estimation with custom paymasters
-        // Solution: Use Pimlico bundler when using Pimlico paymaster
-        // CRITICAL: Pimlico bundler REQUIRES API key authentication - must use proxy
-        const usePimlicoBundler = true // Use Pimlico bundler with Pimlico paymaster
+        // Bundler Configuration: Smart routing based on method type
+        // ZeroDev SDK uses some ZeroDev-specific methods (zd_*) that Pimlico doesn't support
+        // Solution: Route ZeroDev-specific methods to ZeroDev bundler, standard ERC-4337 methods to Pimlico
+        // This allows us to use Pimlico paymaster while maintaining compatibility with ZeroDev SDK
         
-        // Create bundler transport that routes through our secure proxy
-        // This keeps the API key secure on the server
-        // We use http transport pointing to our proxy, which forwards JSON-RPC requests to Pimlico
-        const bundlerTransport = usePimlicoBundler
-          ? http('/api/pimlico/bundler', {
-              // Custom fetch to intercept and log requests
-              fetchFn: async (url, options) => {
-                // Parse the JSON-RPC request body
-                if (options?.body) {
-                  try {
-                    const body = JSON.parse(options.body as string)
-                    console.log('[ZERODEV] 📤 Calling Pimlico bundler via secure proxy...', { 
-                      method: body.method,
-                      id: body.id 
-                    })
-                  } catch {
-                    // Ignore parse errors
-                  }
-                }
+        // ZeroDev bundler URL
+        const zeroDevBundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
+        
+        // Create smart bundler transport that routes methods intelligently
+        const bundlerTransport = http('/api/pimlico/bundler', {
+          fetchFn: async (url, options) => {
+            // Parse the JSON-RPC request body to determine routing
+            let requestBody: { method?: string; params?: unknown[] } = {}
+            let shouldUseZeroDevBundler = false
+            
+            if (options?.body) {
+              try {
+                requestBody = JSON.parse(options.body as string)
+                const method = requestBody.method || ''
                 
-                // Forward the request to our proxy (which adds API key and forwards to Pimlico)
-                const response = await fetch('/api/pimlico/bundler', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: options?.body,
-                })
-
-                if (!response.ok) {
-                  let errorData: { error?: { message?: string } | string } = {}
-                  try {
-                    errorData = await response.json()
-                  } catch {
-                    // If JSON parsing fails, try to get text
-                    const errorText = await response.text()
-                    errorData = { error: errorText }
-                  }
-                  console.error('[ZERODEV] ❌ Pimlico bundler proxy error:', response.status, errorData)
-                  
-                  // Check for API key configuration error
-                  // Handle both string and object error formats
-                  let errorMessage: string = 'Unknown error'
-                  if (errorData.error) {
-                    if (typeof errorData.error === 'string') {
-                      errorMessage = errorData.error
-                    } else if (errorData.error.message) {
-                      errorMessage = errorData.error.message
-                    }
-                  }
-                  
-                  if (errorMessage.includes('Pimlico API key not configured') || 
-                      errorMessage.includes('PIMLICO_API_KEY not configured')) {
-                    throw new Error(
-                      'PIMLICO_API_KEY not configured in Vercel environment variables. ' +
-                      'Pimlico bundler is REQUIRED for production. ' +
-                      'Please add PIMLICO_API_KEY to your Vercel project settings.'
-                    )
-                  }
-                  
-                  throw new Error(`Pimlico bundler proxy error: ${response.status} ${errorMessage}`)
+                // ZeroDev-specific methods must go to ZeroDev bundler
+                // Standard ERC-4337 methods can go to Pimlico bundler
+                if (method.startsWith('zd_') || method.includes('zerodev')) {
+                  shouldUseZeroDevBundler = true
+                  console.log('[ZERODEV] 🔀 Routing ZeroDev-specific method to ZeroDev bundler:', method)
+                } else {
+                  console.log('[ZERODEV] 📤 Routing standard method to Pimlico bundler:', method)
                 }
-
-                return response
+              } catch {
+                // If parsing fails, default to Pimlico
+                console.log('[ZERODEV] ⚠️ Could not parse request, defaulting to Pimlico bundler')
+              }
+            }
+            
+            // Route to appropriate bundler
+            const targetUrl = shouldUseZeroDevBundler 
+              ? zeroDevBundlerUrl 
+              : '/api/pimlico/bundler'
+            
+            const response = await fetch(targetUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
               },
+              body: options?.body,
             })
-          : http(`https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`)
+
+            if (!response.ok) {
+              let errorData: { error?: { message?: string } | string } = {}
+              try {
+                errorData = await response.json()
+              } catch {
+                // If JSON parsing fails, try to get text
+                const errorText = await response.text()
+                errorData = { error: errorText }
+              }
+              console.error('[ZERODEV] ❌ Bundler error:', response.status, errorData)
+              
+              // Check for API key configuration error
+              let errorMessage: string = 'Unknown error'
+              if (errorData.error) {
+                if (typeof errorData.error === 'string') {
+                  errorMessage = errorData.error
+                } else if (errorData.error.message) {
+                  errorMessage = errorData.error.message
+                }
+              }
+              
+              if (errorMessage.includes('Pimlico API key not configured') || 
+                  errorMessage.includes('PIMLICO_API_KEY not configured')) {
+                throw new Error(
+                  'PIMLICO_API_KEY not configured in Vercel environment variables. ' +
+                  'Pimlico bundler is REQUIRED for production. ' +
+                  'Please add PIMLICO_API_KEY to your Vercel project settings.'
+                )
+              }
+              
+              throw new Error(`Bundler error: ${response.status} ${errorMessage}`)
+            }
+
+            return response
+          },
+        })
         
-        if (usePimlicoBundler) {
-          console.log('[ZERODEV] 📦 Using Pimlico bundler (required for Pimlico paymaster)')
-          console.log('[ZERODEV] ℹ️ Pimlico bundler supports custom paymasters during gas estimation')
-          console.log('[ZERODEV] 🔒 Bundler API key is secure on server, not exposed to client')
-        } else {
-          console.log('[ZERODEV] 📦 Using ZeroDev bundler')
-        }
+        console.log('[ZERODEV] 📦 Using smart bundler routing:')
+        console.log('[ZERODEV]   - ZeroDev-specific methods (zd_*) → ZeroDev bundler')
+        console.log('[ZERODEV]   - Standard ERC-4337 methods → Pimlico bundler')
+        console.log('[ZERODEV]   - Paymaster: Pimlico (REQUIRED for mainnet)')
+        console.log('[ZERODEV] 🔒 Bundler API keys are secure on server, not exposed to client')
         
         // Paymaster Configuration: Pimlico is REQUIRED (ZeroDev paymaster doesn't work on mainnet with free plan)
         console.log('[ZERODEV] 🔧 Setting up paymaster...')
