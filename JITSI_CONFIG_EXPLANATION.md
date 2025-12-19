@@ -48,3 +48,4 @@ Si recibes "autenticación falló", verifica:
 3. ✅ El servidor Jitsi tiene `JWT_ALLOW_EMPTY=0` (requiere JWT)
 4. ✅ Reiniciaste el servidor Jitsi después de cambiar variables: `docker-compose restart`
 
+

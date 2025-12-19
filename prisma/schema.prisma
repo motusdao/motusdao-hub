@@ -1,19 +1,241 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-enum Role {
-  usuario
-  psm
-  admin
+model contactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  userId    String?
+  createdAt DateTime @default(now())
+  user      user?    @relation(fields: [userId], references: [id])
+
+  @@map("contact_messages")
+}
+
+model course {
+  id          String        @id
+  title       String
+  slug        String        @unique
+  summary     String
+  description String?
+  imageUrl    String?
+  isPublished Boolean       @default(false)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime
+  enrollments enrollment[]
+  lessons     lesson[]
+
+  @@map("courses")
+}
+
+model enrollment {
+  id        String   @id
+  userId    String
+  courseId  String
+  progress  Int      @default(0)
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime
+  course    course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, courseId])
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model journalEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  content   String
+  mood      String?
+  tags      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("journal_entries")
+}
+
+model lesson {
+  id          String   @id
+  courseId    String
+  title       String
+  slug        String
+  contentMDX  String?
+  order       Int      @default(0)
+  duration    Int?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  course      course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, slug])
+  @@map("lessons")
+}
+
+model match {
+  id         String      @id @default(cuid())
+  userId     String
+  psmId      String
+  status     MatchStatus @default(active)
+  matchedAt  DateTime    @default(now())
+  endedAt    DateTime?
+  reason     String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  psm        user        @relation("matches_psmIdTousers", fields: [psmId], references: [id], onDelete: Cascade)
+  user       user        @relation("matches_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+  sessions   session[]
+
+  @@map("matches")
+  @@unique([userId, psmId])
+  @@index([psmId, status])
+  @@index([userId, status])
+}
+
+model PatientProfile {
+  id                    String   @id @default(cuid())
+  userId                String   @unique
+  tipoAtencion          String
+  problematica          String
+  preferenciaAsignacion String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  user                  user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("patient_profiles")
+}
+
+model paymentLog {
+  id                                   String             @id @default(cuid())
+  fromUserId                           String
+  toUserId                             String?
+  destination                          PaymentDestination
+  destinationAddress                   String
+  amount                               String
+  currency                             String
+  transactionHash                      String             @unique
+  explorerUrl                          String?
+  notes                                String?
+  createdAt                            DateTime           @default(now())
+  fromUser                             user               @relation("payment_logs_fromUserIdTousers", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser                               user?              @relation("payment_logs_toUserIdTousers", fields: [toUserId], references: [id])
+
+  @@map("payment_logs")
+  @@index([destination])
+  @@index([fromUserId, createdAt])
+  @@index([toUserId, createdAt])
+}
+
+model PaymentPreference {
+  id                 String             @id @default(cuid())
+  userId             String             @unique
+  defaultDestination PaymentDestination @default(own_wallet)
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime          @updatedAt
+  user               user               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("payment_preferences")
+}
+
+model profile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  nombre          String
+  apellido        String
+  telefono        String
+  fechaNacimiento DateTime
+  ciudad          String
+  pais            String
+  avatarUrl       String?
+  bio             String?
+  language        String   @default("es")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model PSMProfile {
+  id                     String   @id @default(cuid())
+  userId                 String   @unique
+  cedulaProfesional      String
+  formacionAcademica     String
+  experienciaAnios       Int
+  biografia              String?
+  especialidades         String
+  participaSupervision   Boolean  @default(false)
+  participaCursos        Boolean  @default(false)
+  participaInvestigacion Boolean  @default(false)
+  participaComunidad     Boolean  @default(false)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  user                   user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("psm_profiles")
+}
+
+model session {
+  id                           String        @id @default(cuid())
+  userId                       String
+  psmId                        String
+  matchId                      String?
+  status                       SessionStatus @default(requested)
+  mode                         SessionMode   @default(video_external)
+  externalUrl                  String
+  requestedAt                  DateTime      @default(now())
+  acceptedAt                   DateTime?
+  startedAt                    DateTime?
+  completedAt                  DateTime?
+  cancelledAt                  DateTime?
+  cancelReason                 String?
+  createdAt                    DateTime      @default(now())
+  updatedAt                    DateTime      @updatedAt
+  match                       match?       @relation(fields: [matchId], references: [id])
+  psm                         user         @relation("sessions_psmIdTousers", fields: [psmId], references: [id], onDelete: Cascade)
+  user                        user         @relation("sessions_userIdTousers", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+  @@index([psmId, status])
+  @@index([userId, status])
+}
+
+model user {
+  id                                          String               @id @default(cuid())
+  role                                        Role                 @default(usuario)
+  email                                       String               @unique
+  privyId                                     String?              @unique
+  createdAt                                   DateTime             @default(now())
+  updatedAt                                   DateTime             @updatedAt
+  eoaAddress                                  String               @unique
+  smartWalletAddress                          String?              @unique
+  registrationCompleted                       Boolean              @default(false)
+  deletedAt                                   DateTime?
+  restoredAt                                  DateTime?
+  contactMessages                             contactMessage[]
+  enrollments                                 enrollment[]
+  journalEntries                              journalEntry[]
+  psmMatches                                  match[]              @relation("matches_psmIdTousers")
+  userMatches                                 match[]              @relation("matches_userIdTousers")
+  patient                                     PatientProfile?
+  paymentsSent                                paymentLog[]         @relation("payment_logs_fromUserIdTousers")
+  paymentsReceived                            paymentLog[]         @relation("payment_logs_toUserIdTousers")
+  paymentPreference                           PaymentPreference?
+  profile                                     profile?
+  psm                                         PSMProfile?
+  sessionsAsPSM                               session[]            @relation("sessions_psmIdTousers")
+  sessionsAsUser                              session[]            @relation("sessions_userIdTousers")
+
+  @@map("users")
 }
 
 enum MatchStatus {
@@ -28,264 +250,19 @@ enum PaymentDestination {
   dao_treasury
 }
 
-enum SessionStatus {
-  requested
-  accepted
-  completed
-  cancelled
+enum Role {
+  usuario
+  psm
+  admin
 }
 
 enum SessionMode {
   video_external
 }
 
-model User {
-  id                    String   @id @default(cuid())
-  role                  Role     @default(usuario)
-  email                 String   @unique
-  eoaAddress            String   @unique
-  smartWalletAddress    String?  @unique
-  privyId               String?  @unique
-  registrationCompleted Boolean  @default(false)
-  deletedAt             DateTime? // Soft delete: null = activo, fecha = eliminado
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-
-  // Relations
-  profile        Profile?
-  patient        PatientProfile?
-  psm            PSMProfile?
-  journalEntries JournalEntry[]
-  enrollments    Enrollment[]
-  contactMessages ContactMessage[]
-  userMatches    Match[]  @relation("UserMatches")
-  psmMatches     Match[]  @relation("PSMMatches")
-  paymentPreference PaymentPreference?
-  paymentsSent   PaymentLog[] @relation("UserPayments")
-  paymentsReceived PaymentLog[] @relation("PSMPayments")
-
-  // Session relations
-  sessionsAsUser Session[] @relation("SessionUser")
-  sessionsAsPSM  Session[] @relation("SessionPSM")
-
-  @@map("users")
-}
-
-model Profile {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  nombre    String
-  apellido  String
-  telefono  String
-  fechaNacimiento DateTime
-  ciudad    String
-  pais      String
-  avatarUrl String?
-  bio       String?
-  language  String   @default("es")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@map("profiles")
-}
-
-model PatientProfile {
-  id           String  @id @default(cuid())
-  userId       String  @unique
-  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tipoAtencion String
-  problematica String
-  preferenciaAsignacion String // "automatica" | "explorar"
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  @@map("patient_profiles")
-}
-
-model PSMProfile {
-  id                 String   @id @default(cuid())
-  userId             String   @unique
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cedulaProfesional  String
-  formacionAcademica String
-  experienciaAnios   Int
-  biografia          String?
-  especialidades     String   // JSON string array
-  participaSupervision  Boolean @default(false)
-  participaCursos       Boolean @default(false)
-  participaInvestigacion Boolean @default(false)
-  participaComunidad    Boolean @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  @@map("psm_profiles")
-}
-
-model ContactMessage {
-  id        String   @id @default(cuid())
-  name      String
-  email     String
-  message   String
-  userId    String?  // Optional, for logged-in users
-  createdAt DateTime @default(now())
-
-  // Relations
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  @@map("contact_messages")
-}
-
-model JournalEntry {
-  id        String   @id @default(cuid())
-  userId    String
-  content   String
-  mood      String?  // "happy", "sad", "anxious", "calm", etc.
-  tags      String?  // JSON string of tags
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("journal_entries")
-}
-
-model Course {
-  id          String   @id @default(cuid())
-  title       String
-  slug        String   @unique
-  summary     String
-  description String?
-  imageUrl    String?
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-
-  // Relations
-  lessons     Lesson[]
-  enrollments Enrollment[]
-
-  @@map("courses")
-}
-
-model Lesson {
-  id          String   @id @default(cuid())
-  courseId    String
-  title       String
-  slug        String
-  contentMDX  String?
-  order       Int      @default(0)
-  duration    Int?     // in minutes
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  // Relations
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([courseId, slug])
-  @@map("lessons")
-}
-
-model Enrollment {
-  id        String   @id @default(cuid())
-  userId    String
-  courseId  String
-  progress  Int      @default(0) // percentage
-  completed Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // Relations
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, courseId])
-  @@map("enrollments")
-}
-
-model Match {
-  id              String      @id @default(cuid())
-  userId          String      // usuario (patient)
-  psmId           String      // psm (psychologist)
-  status          MatchStatus @default(active)
-  matchedAt       DateTime    @default(now())
-  endedAt         DateTime?
-  reason          String?     // Reason for ending (optional)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-
-  // Relations
-  user            User        @relation("UserMatches", fields: [userId], references: [id], onDelete: Cascade)
-  psm             User        @relation("PSMMatches", fields: [psmId], references: [id], onDelete: Cascade)
-
-  // Relations
-  sessions        Session[]
-
-  @@unique([userId, psmId])
-  @@index([userId, status])
-  @@index([psmId, status])
-  @@map("matches")
-}
-
-model PaymentPreference {
-  id              String              @id @default(cuid())
-  userId          String              @unique
-  defaultDestination PaymentDestination @default(own_wallet)
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("payment_preferences")
-}
-
-model PaymentLog {
-  id              String              @id @default(cuid())
-  fromUserId      String              // User who sent the payment
-  toUserId        String?             // PSM who received (if matched_psm)
-  destination     PaymentDestination
-  destinationAddress String           // Actual address funds went to
-  amount          String              // Amount in wei or token units
-  currency        String              // "CELO", "cUSD", "cEUR"
-  transactionHash String              @unique
-  explorerUrl     String?
-  notes           String?             // Optional notes
-  createdAt       DateTime            @default(now())
-
-  // Relations
-  fromUser        User                @relation("UserPayments", fields: [fromUserId], references: [id], onDelete: Cascade)
-  toUser          User?               @relation("PSMPayments", fields: [toUserId], references: [id], onDelete: SetNull)
-
-  @@index([fromUserId, createdAt])
-  @@index([toUserId, createdAt])
-  @@index([destination])
-  @@map("payment_logs")
-}
-
-model Session {
-  id              String        @id @default(cuid())
-  userId          String
-  psmId           String
-  matchId         String?
-  status          SessionStatus @default(requested)
-  mode            SessionMode   @default(video_external)
-  externalUrl     String
-  requestedAt     DateTime      @default(now())
-  acceptedAt      DateTime?
-  startedAt       DateTime?
-  completedAt     DateTime?
-  cancelledAt     DateTime?
-  cancelReason    String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-
-  user            User          @relation("SessionUser", fields: [userId], references: [id], onDelete: Cascade)
-  psm             User          @relation("SessionPSM", fields: [psmId], references: [id], onDelete: Cascade)
-  match           Match?        @relation(fields: [matchId], references: [id])
-
-  @@index([userId, status])
-  @@index([psmId, status])
-  @@map("sessions")
+enum SessionStatus {
+  requested
+  accepted
+  completed
+  cancelled
 }

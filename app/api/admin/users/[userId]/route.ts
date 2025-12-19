@@ -129,10 +129,28 @@ export async function PATCH(
     }
 
     // Restore the user
-    await prisma.user.update({
-      where: { id: userId },
-      data: { deletedAt: null }
-    })
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: { 
+          deletedAt: null,
+          restoredAt: new Date() // Track when user was restored
+        }
+      })
+    } catch (updateError) {
+      console.error('Error updating user during restore:', updateError)
+      // If restoredAt field doesn't exist, try without it
+      if (updateError instanceof Error && updateError.message.includes('restoredAt')) {
+        await prisma.user.update({
+          where: { id: userId },
+          data: { 
+            deletedAt: null
+          }
+        })
+      } else {
+        throw updateError
+      }
+    }
 
     return NextResponse.json({
       success: true,
@@ -141,8 +159,15 @@ export async function PATCH(
 
   } catch (error) {
     console.error('Error restoring user:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    const errorStack = error instanceof Error ? error.stack : undefined
+    
     return NextResponse.json(
-      { error: 'Error interno del servidor' },
+      { 
+        error: 'Error interno del servidor',
+        message: errorMessage,
+        ...(process.env.NODE_ENV === 'development' && { stack: errorStack })
+      },
       { status: 500 }
     )
   }

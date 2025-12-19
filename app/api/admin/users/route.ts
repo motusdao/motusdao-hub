@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: Prisma.UserWhereInput = {}
+    const where: Prisma.userWhereInput = {}
     
     // Filter by deletion status
     if (showDeleted) {

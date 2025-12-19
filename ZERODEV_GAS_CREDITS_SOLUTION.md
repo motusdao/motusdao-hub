@@ -186,3 +186,4 @@ Si ninguna opción funciona, contacta a ZeroDev support:
 - **Plan gratuito:** Bloquea mainnet a nivel de API, no solo por falta de fondos
 - **Self-funded:** Requiere que el proyecto esté configurado para mainnet en el dashboard
 
+

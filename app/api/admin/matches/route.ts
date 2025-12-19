@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@prisma/client'
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,8 +21,8 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get('status') || ''
     const skip = (page - 1) * limit
 
-    // Build where clause
-    const where: Prisma.MatchWhereInput = {}
+    // Build where clause (filter by match status)
+    const where: { status?: 'active' | 'paused' | 'ended' } = {}
     
     if (status && ['active', 'paused', 'ended'].includes(status)) {
       where.status = status as 'active' | 'paused' | 'ended'
@@ -197,15 +196,47 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error('Error fetching matches:', error)
+    
+    // Enhanced error logging for production debugging
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
     const errorStack = error instanceof Error ? error.stack : undefined
+    const errorName = error instanceof Error ? error.name : 'Unknown'
+    
+    // Check for common Prisma errors
+    const errorDetails: {
+      error: string
+      message: string
+      name: string
+      diagnosis?: string
+      stack?: string
+    } = {
+      error: 'Internal server error',
+      message: errorMessage,
+      name: errorName,
+    }
+    
+    // Add more details in production for debugging
+    if (process.env.NODE_ENV === 'production') {
+      // Check for database connection errors
+      if (errorMessage.includes('P1001') || errorMessage.includes('Can\'t reach database server')) {
+        errorDetails.diagnosis = 'Database connection failed. Check DATABASE_URL in Vercel environment variables.'
+      } else if (errorMessage.includes('P1003') || errorMessage.includes('Database does not exist')) {
+        errorDetails.diagnosis = 'Database not found. Verify database name in DATABASE_URL.'
+      } else if (errorMessage.includes('P1017') || errorMessage.includes('Server has closed the connection')) {
+        errorDetails.diagnosis = 'Database connection closed. May need connection pooling configuration.'
+      } else if (errorMessage.includes('P2002') || errorMessage.includes('Unique constraint')) {
+        errorDetails.diagnosis = 'Database constraint violation.'
+      }
+      
+      // Include stack trace in production for debugging (can be removed later)
+      errorDetails.stack = errorStack
+    } else {
+      // Development: always include stack
+      errorDetails.stack = errorStack
+    }
     
     return NextResponse.json(
-      { 
-        error: 'Internal server error',
-        message: errorMessage,
-        ...(process.env.NODE_ENV === 'development' && { stack: errorStack })
-      },
+      errorDetails,
       { status: 500 }
     )
   }

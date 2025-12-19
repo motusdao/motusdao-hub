@@ -133,3 +133,4 @@ Si quieres que mainnet aparezca en el dashboard:
 - ✅ **Después se cobrará a la tarjeta**
 - ✅ **El dashboard puede mostrar solo Alfajores, pero mainnet funciona**
 
+

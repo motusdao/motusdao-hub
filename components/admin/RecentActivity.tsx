@@ -9,7 +9,9 @@ import {
   Calendar, 
   DollarSign,
   MessageSquare,
-  Clock
+  Clock,
+  UserMinus,
+  UserCheck
 } from 'lucide-react'
 // Simple date formatting without date-fns for now
 function formatDistanceToNow(date: Date): string {
@@ -25,7 +27,7 @@ function formatDistanceToNow(date: Date): string {
 
 interface ActivityItem {
   id: string
-  type: 'user_registered' | 'match_created' | 'session_created' | 'payment' | 'message'
+  type: 'user_registered' | 'user_deleted' | 'user_restored' | 'match_created' | 'session_created' | 'payment' | 'message'
   title: string
   description: string
   timestamp: string
@@ -58,6 +60,10 @@ export function RecentActivity() {
     switch (type) {
       case 'user_registered':
         return UserPlus
+      case 'user_deleted':
+        return UserMinus
+      case 'user_restored':
+        return UserCheck
       case 'match_created':
         return Heart
       case 'session_created':
@@ -75,6 +81,10 @@ export function RecentActivity() {
     switch (type) {
       case 'user_registered':
         return 'from-blue-500 to-cyan-600'
+      case 'user_deleted':
+        return 'from-red-500 to-rose-600'
+      case 'user_restored':
+        return 'from-green-500 to-emerald-600'
       case 'match_created':
         return 'from-pink-500 to-rose-600'
       case 'session_created':

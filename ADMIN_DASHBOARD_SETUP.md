@@ -248,3 +248,4 @@ Para completar el dashboard, se deben implementar:
 - Ver `prisma/schema.prisma` para el schema actualizado
 - Ver `app/admin/` para la estructura del dashboard
 
+

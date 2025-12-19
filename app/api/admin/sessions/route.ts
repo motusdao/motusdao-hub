@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: Prisma.SessionWhereInput = {}
+    const where: Prisma.sessionWhereInput = {}
     
     if (status && ['requested', 'accepted', 'completed', 'cancelled'].includes(status)) {
       where.status = status as 'requested' | 'accepted' | 'completed' | 'cancelled'

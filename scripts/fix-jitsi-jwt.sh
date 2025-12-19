@@ -42,3 +42,4 @@ echo "2. Reiniciar el servidor: cd ~/jitsi-meet && docker-compose restart"
 echo ""
 echo "📝 Para verificar, ejecuta: ./scripts/test-jitsi-jwt.sh"
 
+

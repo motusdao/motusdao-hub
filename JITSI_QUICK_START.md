@@ -67,3 +67,4 @@ Follow the detailed guide in `JITSI_SETUP.md` to:
   - Your Next.js `.env.local`
 - Check server logs if rooms aren't working
 
+

@@ -250,24 +250,13 @@ export function ZeroDevSmartWalletProvider({
                 console.log('[ZERODEV] ✅ Pimlico paymaster response received')
                 
                 // Convert Pimlico response to ZeroDev format
-                // Pimlico returns hex strings, we need to convert to BigInt for ZeroDev
+                // GetPaymasterDataReturnType only expects paymasterAndData
+                // Gas limits are handled automatically by ZeroDev SDK
                 const paymasterAndData = result.paymasterAndData || '0x'
-                const verificationGasLimit = typeof result.verificationGasLimit === 'string'
-                  ? BigInt(result.verificationGasLimit)
-                  : BigInt(result.verificationGasLimit || 0)
-                const preVerificationGas = typeof result.preVerificationGas === 'string'
-                  ? BigInt(result.preVerificationGas)
-                  : BigInt(result.preVerificationGas || 0)
-                const callGasLimit = typeof result.callGasLimit === 'string'
-                  ? BigInt(result.callGasLimit)
-                  : BigInt(result.callGasLimit || 0)
                 
                 // Return in ZeroDev's expected format
                 return {
                   paymasterAndData: paymasterAndData as `0x${string}`,
-                  verificationGasLimit,
-                  preVerificationGas,
-                  callGasLimit,
                 }
               } catch (error) {
                 console.error('[ZERODEV] ❌ Pimlico paymaster error:', error)

@@ -386,3 +386,4 @@ app/api/admin/
 - Integración con herramientas de BI
 - API de webhooks para eventos importantes
 
+

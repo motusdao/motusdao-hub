@@ -80,3 +80,4 @@ echo "2. Verifica que JWT_APP_ID en el servidor Jitsi sea igual a JITSI_APP_ID e
 echo "3. Reinicia el servidor Jitsi: cd $JITSI_DIR && docker-compose restart"
 echo "4. Reinicia Next.js: npm run dev"
 
+

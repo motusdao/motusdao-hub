@@ -30,10 +30,20 @@ export async function GET(request: NextRequest) {
     const limit = 10
 
     // Get recent activities from different sources
-    const [recentUsers, recentMatches, recentSessions, recentPayments, recentMessages] = await Promise.all([
+    // Note: restoredUsers query is wrapped in try-catch in case restoredAt field doesn't exist in DB
+    const [recentUsers, deletedUsers, recentMatches, recentSessions, recentPayments, recentMessages] = await Promise.all([
       prisma.user.findMany({
         take: limit,
+        where: { deletedAt: null }, // Only active users
         orderBy: { createdAt: 'desc' },
+        include: {
+          profile: true
+        }
+      }),
+      prisma.user.findMany({
+        take: limit,
+        where: { deletedAt: { not: null } }, // Only deleted users
+        orderBy: { deletedAt: 'desc' },
         include: {
           profile: true
         }
@@ -67,6 +77,36 @@ export async function GET(request: NextRequest) {
       })
     ])
 
+    // Try to get restored users, but handle case where restoredAt field doesn't exist
+    let restoredUsers: Array<{
+      id: string
+      email: string
+      role: string
+      restoredAt: Date | null
+      createdAt: Date
+      profile: { nombre: string; apellido: string } | null
+    }> = []
+    
+    try {
+      const restoredUsersResult = await prisma.user.findMany({
+        take: limit,
+        where: { 
+          restoredAt: { not: null }, // Only restored users
+          deletedAt: null // Must be currently active
+        },
+        orderBy: { restoredAt: 'desc' },
+        include: {
+          profile: true
+        }
+      })
+      restoredUsers = restoredUsersResult
+    } catch (error) {
+      // If restoredAt field doesn't exist in database, just skip restored users
+      // This can happen if migration hasn't been run yet
+      console.warn('restoredAt field may not exist in database, skipping restored users:', error)
+      restoredUsers = []
+    }
+
     // Combine and format activities
     const activities = [
       ...recentUsers.map(user => ({
@@ -77,6 +117,24 @@ export async function GET(request: NextRequest) {
           ? `${user.profile.nombre} ${user.profile.apellido} (${user.email})`
           : user.email,
         timestamp: user.createdAt.toISOString(),
+      })),
+      ...deletedUsers.map(user => ({
+        id: `user-deleted-${user.id}`,
+        type: 'user_deleted' as const,
+        title: 'Usuario eliminado',
+        description: user.profile
+          ? `${user.profile.nombre} ${user.profile.apellido} (${user.email})`
+          : user.email,
+        timestamp: user.deletedAt!.toISOString(), // deletedAt is guaranteed to be non-null here
+      })),
+      ...restoredUsers.map(user => ({
+        id: `user-restored-${user.id}`,
+        type: 'user_restored' as const,
+        title: user.role === 'psm' ? 'Profesional (PSM) restaurado' : 'Usuario restaurado',
+        description: user.profile
+          ? `${user.profile.nombre} ${user.profile.apellido} (${user.email})`
+          : user.email,
+        timestamp: user.restoredAt!.toISOString(), // restoredAt is guaranteed to be non-null here
       })),
       ...recentMatches.map(match => ({
         id: `match-${match.id}`,

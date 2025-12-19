@@ -83,3 +83,4 @@ echo "2. Reinicia el servidor si cambiaste variables: docker-compose restart"
 echo "3. Prueba en Next.js: npm run dev y navega a /videochat"
 echo "4. Abre la consola del navegador (F12) para ver los logs"
 
+

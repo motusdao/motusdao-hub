@@ -125,3 +125,4 @@ Mientras resuelves el problema de self-funded, puedes:
 3. Verifica el balance del paymaster en Celo Explorer
 4. Si todo está correcto, contacta a ZeroDev support
 
+
