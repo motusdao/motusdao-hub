@@ -180,8 +180,10 @@ async function main() {
       },
       update: {},
       create: {
+        id: `lesson_${course1.id}_${lesson.slug}`,
         courseId: course1.id,
-        ...lesson
+        ...lesson,
+        updatedAt: new Date()
       }
     })
   }
@@ -224,8 +226,10 @@ async function main() {
       },
       update: {},
       create: {
+        id: `lesson_${course2.id}_${lesson.slug}`,
         courseId: course2.id,
-        ...lesson
+        ...lesson,
+        updatedAt: new Date()
       }
     })
   }
@@ -304,10 +308,12 @@ async function main() {
     },
     update: {},
     create: {
+      id: `enrollment_${user1.id}_${course1.id}`,
       userId: user1.id,
       courseId: course1.id,
       progress: 50,
-      completed: false
+      completed: false,
+      updatedAt: new Date()
     }
   })
 
@@ -320,10 +326,12 @@ async function main() {
     },
     update: {},
     create: {
+      id: `enrollment_${user1.id}_${course2.id}`,
       userId: user1.id,
       courseId: course2.id,
       progress: 25,
-      completed: false
+      completed: false,
+      updatedAt: new Date()
     }
   })
 
