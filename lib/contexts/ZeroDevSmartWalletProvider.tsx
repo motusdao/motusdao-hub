@@ -249,7 +249,13 @@ export function ZeroDevSmartWalletProvider({
                 })
 
                 if (!response.ok) {
-                  const errorData = await response.json().catch(() => ({ error: await response.text() }))
+                  let errorData: { error?: string } = {}
+                  try {
+                    errorData = await response.json()
+                  } catch {
+                    const errorText = await response.text()
+                    errorData = { error: errorText }
+                  }
                   console.error('[ZERODEV] ❌ Pimlico proxy error:', response.status, errorData)
                   throw new Error(`Pimlico proxy error: ${response.status} ${errorData.error || 'Unknown error'}`)
                 }
