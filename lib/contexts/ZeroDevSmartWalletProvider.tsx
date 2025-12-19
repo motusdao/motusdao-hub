@@ -180,22 +180,111 @@ export function ZeroDevSmartWalletProvider({
         let paymasterClient
         
         if (usePimlico) {
-          // Use Pimlico Paymaster
-          // Pimlico paymaster URL format: https://api.pimlico.io/v2/{chainId}/rpc?apikey={apiKey}
-          const pimlicoPaymasterUrl = `https://api.pimlico.io/v2/${FORCED_CHAIN.id}/rpc?apikey=${pimlicoApiKey}`
+          // Use Pimlico Paymaster with custom implementation
+          // Pimlico API endpoint: https://api.pimlico.io/v2/{chainId}/rpc?apikey={apiKey}
+          const pimlicoApiUrl = `https://api.pimlico.io/v2/${FORCED_CHAIN.id}/rpc?apikey=${pimlicoApiKey}`
           
           console.log('[ZERODEV] 🔄 Using Pimlico paymaster')
-          console.log('[ZERODEV] 💰 Pimlico Paymaster URL:', pimlicoPaymasterUrl.replace(pimlicoApiKey, '***'))
+          console.log('[ZERODEV] 💰 Pimlico API URL:', pimlicoApiUrl.replace(pimlicoApiKey, '***'))
           console.log('[ZERODEV] ℹ️ Smart wallets still created by ZeroDev, only paymaster is Pimlico')
           
-          // Create Pimlico paymaster client
-          // Pimlico paymaster is compatible with ZeroDev Kernel
-          // We use the same createZeroDevPaymasterClient but with Pimlico URL
-          // This works because both use ERC4337 standard paymaster interface
-          paymasterClient = createZeroDevPaymasterClient({
-            chain: FORCED_CHAIN,
-            transport: http(pimlicoPaymasterUrl),
-          })
+          // Create custom Pimlico paymaster client
+          // ZeroDev SDK requires getPaymasterData function that calls Pimlico's API
+          paymasterClient = {
+            async getPaymasterData(args) {
+              try {
+                // Helper function to convert BigInt to hex string
+                const toHex = (value: bigint | string): string => {
+                  if (typeof value === 'string') {
+                    // If already hex string, ensure it has 0x prefix
+                    return value.startsWith('0x') ? value : `0x${value}`
+                  }
+                  // Convert BigInt to hex
+                  const hex = value.toString(16)
+                  return `0x${hex}`
+                }
+
+                // Serialize userOperation for Pimlico API
+                // Pimlico expects hex strings for all numeric values
+                const userOperation = {
+                  sender: args.userOperation.sender,
+                  nonce: toHex(args.userOperation.nonce),
+                  initCode: args.userOperation.initCode || '0x',
+                  callData: args.userOperation.callData,
+                  callGasLimit: toHex(args.userOperation.callGasLimit),
+                  verificationGasLimit: toHex(args.userOperation.verificationGasLimit),
+                  preVerificationGas: toHex(args.userOperation.preVerificationGas),
+                  maxFeePerGas: toHex(args.userOperation.maxFeePerGas),
+                  maxPriorityFeePerGas: toHex(args.userOperation.maxPriorityFeePerGas),
+                  paymasterAndData: '0x',
+                  signature: '0x',
+                }
+
+                console.log('[ZERODEV] 📤 Calling Pimlico pm_sponsorUserOperation...')
+
+                // Call Pimlico's pm_sponsorUserOperation RPC method
+                const response = await fetch(pimlicoApiUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    id: 1,
+                    method: 'pm_sponsorUserOperation',
+                    params: [userOperation, { chainId: FORCED_CHAIN.id }],
+                  }),
+                })
+
+                if (!response.ok) {
+                  const errorText = await response.text()
+                  console.error('[ZERODEV] ❌ Pimlico API HTTP error:', response.status, errorText)
+                  throw new Error(`Pimlico API error: ${response.status} ${errorText}`)
+                }
+
+                const data = await response.json()
+                
+                if (data.error) {
+                  console.error('[ZERODEV] ❌ Pimlico API RPC error:', data.error)
+                  throw new Error(`Pimlico API error: ${data.error.message || JSON.stringify(data.error)}`)
+                }
+
+                const result = data.result
+                console.log('[ZERODEV] ✅ Pimlico paymaster response received')
+                
+                // Convert Pimlico response to ZeroDev format
+                // Pimlico returns hex strings, we need to convert to BigInt for ZeroDev
+                const paymasterAndData = result.paymasterAndData || '0x'
+                const verificationGasLimit = typeof result.verificationGasLimit === 'string'
+                  ? BigInt(result.verificationGasLimit)
+                  : BigInt(result.verificationGasLimit || 0)
+                const preVerificationGas = typeof result.preVerificationGas === 'string'
+                  ? BigInt(result.preVerificationGas)
+                  : BigInt(result.preVerificationGas || 0)
+                const callGasLimit = typeof result.callGasLimit === 'string'
+                  ? BigInt(result.callGasLimit)
+                  : BigInt(result.callGasLimit || 0)
+                
+                // Return in ZeroDev's expected format
+                return {
+                  paymasterAndData: paymasterAndData as `0x${string}`,
+                  verificationGasLimit,
+                  preVerificationGas,
+                  callGasLimit,
+                }
+              } catch (error) {
+                console.error('[ZERODEV] ❌ Pimlico paymaster error:', error)
+                throw error
+              }
+            },
+            async getPaymasterStubData(args) {
+              // Return stub data for gas estimation
+              // This is used during gas estimation before the actual userOp is created
+              return {
+                paymasterAndData: '0x' as `0x${string}`,
+              }
+            },
+          }
           
           console.log('[ZERODEV] ✅ Pimlico paymaster client created', {
             chainId: FORCED_CHAIN.id,
