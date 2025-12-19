@@ -11,27 +11,11 @@ import {
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator'
 import { createPublicClient, createWalletClient, custom, http, type Address, type WalletClient, type Account, type Transport, type Chain } from 'viem'
+import type { GetPaymasterDataParameters, GetPaymasterDataReturnType, GetPaymasterStubDataParameters } from 'viem/account-abstraction'
 import { celoMainnet } from '@/lib/celo'
 
 // FORZAR Celo Mainnet - no importa qué diga el dashboard
 const FORCED_CHAIN = celoMainnet // Chain ID 42220
-
-// Tipo mínimo para los argumentos de getPaymasterData que realmente usamos
-type PimlicoPaymasterArgs = {
-  userOperation: {
-    sender: Address
-    nonce: bigint | string
-    initCode?: `0x${string}` | null
-    callData: `0x${string}`
-    callGasLimit: bigint | string
-    verificationGasLimit: bigint | string
-    preVerificationGas: bigint | string
-    maxFeePerGas: bigint | string
-    maxPriorityFeePerGas: bigint | string
-    paymasterAndData?: `0x${string}`
-    signature?: `0x${string}`
-  }
-}
 
 interface ZeroDevContextType {
   kernelClient: KernelAccountClient | null
@@ -205,10 +189,11 @@ export function ZeroDevSmartWalletProvider({
           // Create custom Pimlico paymaster client that calls our server-side proxy
           // This keeps the API key secure on the server
           paymasterClient = {
-            async getPaymasterData(args: PimlicoPaymasterArgs) {
+            async getPaymasterData(args: GetPaymasterDataParameters): Promise<GetPaymasterDataReturnType> {
               try {
                 // Helper function to convert BigInt to hex string
-                const toHex = (value: bigint | string): string => {
+                const toHex = (value: bigint | string | undefined): string => {
+                  if (!value) return '0x0'
                   if (typeof value === 'string') {
                     // If already hex string, ensure it has 0x prefix
                     return value.startsWith('0x') ? value : `0x${value}`
@@ -219,17 +204,18 @@ export function ZeroDevSmartWalletProvider({
                 }
 
                 // Serialize userOperation for Pimlico API
+                // GetPaymasterDataParameters has fields directly, not nested in userOperation
                 // Pimlico expects hex strings for all numeric values
                 const userOperation = {
-                  sender: args.userOperation.sender,
-                  nonce: toHex(args.userOperation.nonce),
-                  initCode: args.userOperation.initCode || '0x',
-                  callData: args.userOperation.callData,
-                  callGasLimit: toHex(args.userOperation.callGasLimit),
-                  verificationGasLimit: toHex(args.userOperation.verificationGasLimit),
-                  preVerificationGas: toHex(args.userOperation.preVerificationGas),
-                  maxFeePerGas: toHex(args.userOperation.maxFeePerGas),
-                  maxPriorityFeePerGas: toHex(args.userOperation.maxPriorityFeePerGas),
+                  sender: args.sender,
+                  nonce: toHex(args.nonce),
+                  initCode: args.initCode || '0x',
+                  callData: args.callData,
+                  callGasLimit: toHex(args.callGasLimit),
+                  verificationGasLimit: toHex(args.verificationGasLimit),
+                  preVerificationGas: toHex(args.preVerificationGas),
+                  maxFeePerGas: toHex(args.maxFeePerGas),
+                  maxPriorityFeePerGas: toHex(args.maxPriorityFeePerGas),
                   paymasterAndData: '0x',
                   signature: '0x',
                 }
@@ -290,7 +276,7 @@ export function ZeroDevSmartWalletProvider({
                 throw error
               }
             },
-            async getPaymasterStubData(args: PimlicoPaymasterArgs) {
+            async getPaymasterStubData(args: GetPaymasterStubDataParameters) {
               // Return stub data for gas estimation
               // This is used during gas estimation before the actual userOp is created
               return {
