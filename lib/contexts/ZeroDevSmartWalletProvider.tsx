@@ -180,12 +180,10 @@ export function ZeroDevSmartWalletProvider({
         console.log('[ZERODEV] 🔒 API key is secure on server, not exposed to client')
         console.log('[ZERODEV] ⚠️ If PIMLICO_API_KEY is not set in Vercel, transactions will fail')
         
-        let paymasterClient
-        
         // Create custom Pimlico paymaster client that calls our server-side proxy
         // This keeps the API key secure on the server
         // ZeroDev paymaster is NOT an option - it doesn't work on mainnet with free plan
-        paymasterClient = {
+        const paymasterClient = {
             async getPaymasterData(args: GetPaymasterDataParameters): Promise<GetPaymasterDataReturnType> {
               try {
                 // Helper function to convert BigInt to hex string
@@ -286,7 +284,7 @@ export function ZeroDevSmartWalletProvider({
                 throw error
               }
             },
-            async getPaymasterStubData(args: GetPaymasterStubDataParameters) {
+            async getPaymasterStubData() {
               // Return stub data for gas estimation
               // IMPORTANT: ZeroDev bundler doesn't accept paymasterAndData during gas estimation
               // So we return empty - the actual paymaster data will be added later by getPaymasterData
@@ -306,7 +304,7 @@ export function ZeroDevSmartWalletProvider({
         })
         
         console.log('[ZERODEV] Creating Kernel account client...')
-        console.log('[ZERODEV] Paymaster type:', usePimlico ? 'Pimlico' : 'ZeroDev')
+        console.log('[ZERODEV] Paymaster type: Pimlico (REQUIRED)')
         
         // Create Kernel client using ZeroDev SDK
         // Smart wallets are created by ZeroDev, but paymaster can be Pimlico or ZeroDev
