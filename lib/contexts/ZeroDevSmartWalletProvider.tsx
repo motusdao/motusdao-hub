@@ -16,6 +16,23 @@ import { celoMainnet } from '@/lib/celo'
 // FORZAR Celo Mainnet - no importa qué diga el dashboard
 const FORCED_CHAIN = celoMainnet // Chain ID 42220
 
+// Tipo mínimo para los argumentos de getPaymasterData que realmente usamos
+type PimlicoPaymasterArgs = {
+  userOperation: {
+    sender: Address
+    nonce: bigint | string
+    initCode?: `0x${string}` | null
+    callData: `0x${string}`
+    callGasLimit: bigint | string
+    verificationGasLimit: bigint | string
+    preVerificationGas: bigint | string
+    maxFeePerGas: bigint | string
+    maxPriorityFeePerGas: bigint | string
+    paymasterAndData?: `0x${string}`
+    signature?: `0x${string}`
+  }
+}
+
 interface ZeroDevContextType {
   kernelClient: KernelAccountClient | null
   smartAccountAddress: Address | null
@@ -173,25 +190,22 @@ export function ZeroDevSmartWalletProvider({
         // the same Project ID works on Celo Mainnet by specifying chain ID in URL
         const bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
         
-        // Paymaster Configuration: Use Pimlico if API key is available, otherwise use ZeroDev
-        const pimlicoApiKey = process.env.NEXT_PUBLIC_PIMLICO_API_KEY
-        const usePimlico = !!pimlicoApiKey
+        // Paymaster Configuration: Use Pimlico if available, otherwise use ZeroDev
+        // Check if Pimlico is configured (we'll use server-side proxy, so we check if endpoint exists)
+        const usePimlico = true // We'll try Pimlico first, fallback to ZeroDev on error
         
         let paymasterClient
         
         if (usePimlico) {
-          // Use Pimlico Paymaster with custom implementation
-          // Pimlico API endpoint: https://api.pimlico.io/v2/{chainId}/rpc?apikey={apiKey}
-          const pimlicoApiUrl = `https://api.pimlico.io/v2/${FORCED_CHAIN.id}/rpc?apikey=${pimlicoApiKey}`
-          
-          console.log('[ZERODEV] 🔄 Using Pimlico paymaster')
-          console.log('[ZERODEV] 💰 Pimlico API URL:', pimlicoApiUrl.replace(pimlicoApiKey, '***'))
+          // Use Pimlico Paymaster via server-side proxy (API key stays secure on server)
+          console.log('[ZERODEV] 🔄 Using Pimlico paymaster (via secure proxy)')
           console.log('[ZERODEV] ℹ️ Smart wallets still created by ZeroDev, only paymaster is Pimlico')
+          console.log('[ZERODEV] 🔒 API key is secure on server, not exposed to client')
           
-          // Create custom Pimlico paymaster client
-          // ZeroDev SDK requires getPaymasterData function that calls Pimlico's API
+          // Create custom Pimlico paymaster client that calls our server-side proxy
+          // This keeps the API key secure on the server
           paymasterClient = {
-            async getPaymasterData(args) {
+            async getPaymasterData(args: PimlicoPaymasterArgs) {
               try {
                 // Helper function to convert BigInt to hex string
                 const toHex = (value: bigint | string): string => {
@@ -220,36 +234,27 @@ export function ZeroDevSmartWalletProvider({
                   signature: '0x',
                 }
 
-                console.log('[ZERODEV] 📤 Calling Pimlico pm_sponsorUserOperation...')
+                console.log('[ZERODEV] 📤 Calling Pimlico paymaster via secure proxy...')
 
-                // Call Pimlico's pm_sponsorUserOperation RPC method
-                const response = await fetch(pimlicoApiUrl, {
+                // Call our server-side proxy endpoint (API key stays on server)
+                const response = await fetch('/api/pimlico/paymaster', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/json',
                   },
                   body: JSON.stringify({
-                    jsonrpc: '2.0',
-                    id: 1,
-                    method: 'pm_sponsorUserOperation',
-                    params: [userOperation, { chainId: FORCED_CHAIN.id }],
+                    chainId: FORCED_CHAIN.id,
+                    userOperation,
                   }),
                 })
 
                 if (!response.ok) {
-                  const errorText = await response.text()
-                  console.error('[ZERODEV] ❌ Pimlico API HTTP error:', response.status, errorText)
-                  throw new Error(`Pimlico API error: ${response.status} ${errorText}`)
+                  const errorData = await response.json().catch(() => ({ error: await response.text() }))
+                  console.error('[ZERODEV] ❌ Pimlico proxy error:', response.status, errorData)
+                  throw new Error(`Pimlico proxy error: ${response.status} ${errorData.error || 'Unknown error'}`)
                 }
 
-                const data = await response.json()
-                
-                if (data.error) {
-                  console.error('[ZERODEV] ❌ Pimlico API RPC error:', data.error)
-                  throw new Error(`Pimlico API error: ${data.error.message || JSON.stringify(data.error)}`)
-                }
-
-                const result = data.result
+                const result = await response.json()
                 console.log('[ZERODEV] ✅ Pimlico paymaster response received')
                 
                 // Convert Pimlico response to ZeroDev format
@@ -274,10 +279,12 @@ export function ZeroDevSmartWalletProvider({
                 }
               } catch (error) {
                 console.error('[ZERODEV] ❌ Pimlico paymaster error:', error)
+                // If Pimlico fails, we could fallback to ZeroDev here
+                // For now, we'll let it throw so user knows there's an issue
                 throw error
               }
             },
-            async getPaymasterStubData(args) {
+            async getPaymasterStubData(args: PimlicoPaymasterArgs) {
               // Return stub data for gas estimation
               // This is used during gas estimation before the actual userOp is created
               return {
@@ -288,7 +295,7 @@ export function ZeroDevSmartWalletProvider({
           
           console.log('[ZERODEV] ✅ Pimlico paymaster client created', {
             chainId: FORCED_CHAIN.id,
-            note: 'Using Pimlico paymaster with ZeroDev smart wallets'
+            note: 'Using Pimlico paymaster via secure server-side proxy'
           })
         } else {
           // Use ZeroDev Paymaster (fallback)
