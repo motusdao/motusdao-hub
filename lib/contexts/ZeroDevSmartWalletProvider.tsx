@@ -182,7 +182,7 @@ export function ZeroDevSmartWalletProvider({
         const bundlerTransport = usePimlicoBundler
           ? http('/api/pimlico/bundler', {
               // Custom fetch to intercept and log requests
-              fetch: async (url, options) => {
+              fetchFn: async (url, options) => {
                 // Parse the JSON-RPC request body
                 if (options?.body) {
                   try {
