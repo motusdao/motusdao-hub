@@ -174,17 +174,21 @@ export function ZeroDevSmartWalletProvider({
         // the same Project ID works on Celo Mainnet by specifying chain ID in URL
         const bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
         
-        // Paymaster Configuration: Use Pimlico if available, otherwise use ZeroDev
-        // Check if Pimlico is configured (we'll use server-side proxy, so we check if endpoint exists)
-        const usePimlico = true // We'll try Pimlico first, fallback to ZeroDev on error
+        // Paymaster Configuration: Pimlico is REQUIRED (ZeroDev paymaster doesn't work on mainnet with free plan)
+        console.log('[ZERODEV] 🔧 Setting up paymaster...')
+        
+        // Check if we should prefer ZeroDev (useful for debugging or if Pimlico has issues)
+        const preferZeroDev = process.env.NEXT_PUBLIC_USE_ZERODEV_PAYMASTER === 'true'
         
         let paymasterClient
+        let usePimlico = false
         
-        if (usePimlico) {
-          // Use Pimlico Paymaster via server-side proxy (API key stays secure on server)
-          console.log('[ZERODEV] 🔄 Using Pimlico paymaster (via secure proxy)')
+        // Pimlico is required for production (Vercel) - ZeroDev paymaster doesn't work on mainnet
+        if (!preferZeroDev) {
+          console.log('[ZERODEV] 🔄 Using Pimlico paymaster (REQUIRED for production)')
           console.log('[ZERODEV] ℹ️ Smart wallets still created by ZeroDev, only paymaster is Pimlico')
           console.log('[ZERODEV] 🔒 API key is secure on server, not exposed to client')
+          console.log('[ZERODEV] ⚠️ If PIMLICO_API_KEY is not set in Vercel, transactions will fail')
           
           // Create custom Pimlico paymaster client that calls our server-side proxy
           // This keeps the API key secure on the server
@@ -243,6 +247,16 @@ export function ZeroDevSmartWalletProvider({
                     errorData = { error: errorText }
                   }
                   console.error('[ZERODEV] ❌ Pimlico proxy error:', response.status, errorData)
+                  
+                  // If Pimlico API key not configured, provide clear error (don't fallback to ZeroDev)
+                  if (response.status === 500 && errorData.error?.includes('Pimlico API key not configured')) {
+                    const errorMsg = 'PIMLICO_API_KEY not configured in Vercel environment variables. ' +
+                      'Pimlico paymaster is REQUIRED for production. ' +
+                      'Please add PIMLICO_API_KEY to your Vercel project settings.'
+                    console.error('[ZERODEV] ❌', errorMsg)
+                    throw new Error(errorMsg)
+                  }
+                  
                   throw new Error(`Pimlico proxy error: ${response.status} ${errorData.error || 'Unknown error'}`)
                 }
 
@@ -259,14 +273,30 @@ export function ZeroDevSmartWalletProvider({
                   paymasterAndData: paymasterAndData as `0x${string}`,
                 }
               } catch (error) {
-                console.error('[ZERODEV] ❌ Pimlico paymaster error:', error)
-                // If Pimlico fails, we could fallback to ZeroDev here
-                // For now, we'll let it throw so user knows there's an issue
+                const errorMessage = error instanceof Error ? error.message : String(error)
+                console.error('[ZERODEV] ❌ Pimlico paymaster error:', errorMessage)
+                
+                // If Pimlico is not configured, provide helpful error message
+                if (errorMessage.includes('Pimlico API key not configured') || 
+                    errorMessage.includes('PIMLICO_API_KEY not configured')) {
+                  const helpfulError = new Error(
+                    'Pimlico paymaster is REQUIRED but not configured. ' +
+                    'Please set PIMLICO_API_KEY in your Vercel environment variables. ' +
+                    'Get your API key from https://dashboard.pimlico.io. ' +
+                    'ZeroDev paymaster does not work on mainnet with free plan.'
+                  )
+                  console.error('[ZERODEV] 💡 Solution:', helpfulError.message)
+                  throw helpfulError
+                }
+                
+                // Re-throw other errors
                 throw error
               }
             },
             async getPaymasterStubData(args: GetPaymasterStubDataParameters) {
               // Return stub data for gas estimation
+              // IMPORTANT: ZeroDev bundler doesn't accept paymasterAndData during gas estimation
+              // So we return empty - the actual paymaster data will be added later by getPaymasterData
               // This is used during gas estimation before the actual userOp is created
               return {
                 paymasterAndData: '0x' as `0x${string}`,
@@ -274,11 +304,36 @@ export function ZeroDevSmartWalletProvider({
             },
           }
           
+          // Pimlico client created successfully
+          // Note: Actual API call happens when transaction is sent
+          usePimlico = true
           console.log('[ZERODEV] ✅ Pimlico paymaster client created', {
             chainId: FORCED_CHAIN.id,
-            note: 'Using Pimlico paymaster via secure server-side proxy'
+            note: 'Using Pimlico paymaster via secure server-side proxy. ' +
+                  'IMPORTANT: PIMLICO_API_KEY must be set in Vercel environment variables for production.'
           })
+        } catch (error) {
+          // Don't fallback to ZeroDev - it doesn't work on mainnet
+          const errorMessage = error instanceof Error ? error.message : String(error)
+          console.error('[ZERODEV] ❌ Pimlico setup failed:', errorMessage)
+          console.error('[ZERODEV] ❌ Cannot fallback to ZeroDev - it does not work on mainnet with free plan')
+          console.error('[ZERODEV] 💡 Solution: Set PIMLICO_API_KEY in Vercel environment variables')
+          // Re-throw to prevent using broken ZeroDev paymaster
+          throw new Error(
+            'Pimlico paymaster setup failed. ' +
+            'Pimlico is REQUIRED for production. ' +
+            'Please configure PIMLICO_API_KEY in Vercel. ' +
+            `Error: ${errorMessage}`
+          )
+        }
         } else {
+          console.log('[ZERODEV] ⚙️ Using ZeroDev paymaster (NEXT_PUBLIC_USE_ZERODEV_PAYMASTER=true)')
+          console.warn('[ZERODEV] ⚠️ WARNING: ZeroDev paymaster does not work on mainnet with free plan')
+          usePimlico = false
+        }
+        
+        // Fallback to ZeroDev Paymaster if Pimlico not available or disabled
+        if (!usePimlico) {
           // Use ZeroDev Paymaster (fallback)
           const useSelfFunded = process.env.NEXT_PUBLIC_ZERODEV_SELF_FUNDED === 'true'
           
@@ -330,6 +385,7 @@ export function ZeroDevSmartWalletProvider({
         }
         
         console.log('[ZERODEV] Creating Kernel account client...')
+        console.log('[ZERODEV] Paymaster type:', usePimlico ? 'Pimlico' : 'ZeroDev')
         
         // Create Kernel client using ZeroDev SDK
         // Smart wallets are created by ZeroDev, but paymaster can be Pimlico or ZeroDev
@@ -344,7 +400,9 @@ export function ZeroDevSmartWalletProvider({
         console.log('[ZERODEV] ✅ Paymaster configured - gasless transactions enabled', {
           paymaster: usePimlico ? 'Pimlico' : 'ZeroDev',
           smartWallets: 'ZeroDev Kernel',
-          bundler: 'ZeroDev'
+          bundler: 'ZeroDev',
+          chainId: FORCED_CHAIN.id,
+          chainName: FORCED_CHAIN.name
         })
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)
