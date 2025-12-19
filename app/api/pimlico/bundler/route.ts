@@ -39,11 +39,18 @@ export async function POST(request: NextRequest) {
     
     // Check if this is a JSON-RPC request from viem (has jsonrpc field)
     // or our custom format (has chainId, method, params separately)
-    let jsonRpcRequest: any
+    interface JsonRpcRequest {
+      jsonrpc: string
+      id: number | string | null
+      method: string
+      params?: unknown[]
+    }
+    
+    let jsonRpcRequest: JsonRpcRequest
     
     if (body.jsonrpc) {
       // This is a JSON-RPC request from viem - forward it as-is
-      jsonRpcRequest = body
+      jsonRpcRequest = body as JsonRpcRequest
     } else if (body.method) {
       // This is our custom format - convert to JSON-RPC
       jsonRpcRequest = {

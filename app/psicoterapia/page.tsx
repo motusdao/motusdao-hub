@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
@@ -265,10 +266,13 @@ export default function PsicoterapiaPage() {
                   <GlassCard key={therapist.id} className="p-6">
                     <div className="flex items-start space-x-4 mb-4">
                       {therapist.image ? (
-                        <img 
+                        <Image 
                           src={therapist.image} 
                           alt={therapist.name}
+                          width={64}
+                          height={64}
                           className="w-16 h-16 rounded-full object-cover"
+                          unoptimized
                         />
                       ) : (
                         <div className="w-16 h-16 bg-gradient-to-r from-mauve-500 to-iris-500 rounded-full flex items-center justify-center">
