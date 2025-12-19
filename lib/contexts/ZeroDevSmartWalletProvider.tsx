@@ -173,21 +173,66 @@ export function ZeroDevSmartWalletProvider({
         // The error "Unrecognized key: paymasterAndData" occurs because ZeroDev bundler
         // rejects paymasterAndData field during gas estimation with custom paymasters
         // Solution: Use Pimlico bundler when using Pimlico paymaster
-        // NOTE: Pimlico bundler requires API key, but we'll use it directly since it's a public endpoint
-        // The API key is only needed for paymaster, not bundler
+        // CRITICAL: Pimlico bundler REQUIRES API key authentication - must use proxy
         const usePimlicoBundler = true // Use Pimlico bundler with Pimlico paymaster
         
-        let bundlerUrl: string
+        // Create bundler transport that routes through our secure proxy
+        // This keeps the API key secure on the server
+        // We use http transport pointing to our proxy, which forwards JSON-RPC requests to Pimlico
+        const bundlerTransport = usePimlicoBundler
+          ? http('/api/pimlico/bundler', {
+              // Custom fetch to intercept and log requests
+              fetch: async (url, options) => {
+                // Parse the JSON-RPC request body
+                if (options?.body) {
+                  try {
+                    const body = JSON.parse(options.body as string)
+                    console.log('[ZERODEV] 📤 Calling Pimlico bundler via secure proxy...', { 
+                      method: body.method,
+                      id: body.id 
+                    })
+                  } catch {
+                    // Ignore parse errors
+                  }
+                }
+                
+                // Forward the request to our proxy (which adds API key and forwards to Pimlico)
+                const response = await fetch('/api/pimlico/bundler', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: options?.body,
+                })
+
+                if (!response.ok) {
+                  const errorData = await response.json().catch(() => ({ error: await response.text() }))
+                  console.error('[ZERODEV] ❌ Pimlico bundler proxy error:', response.status, errorData)
+                  
+                  // Check for API key configuration error
+                  const errorMessage = errorData.error?.message || errorData.error || 'Unknown error'
+                  if (errorMessage.includes('Pimlico API key not configured') || 
+                      errorMessage.includes('PIMLICO_API_KEY not configured')) {
+                    throw new Error(
+                      'PIMLICO_API_KEY not configured in Vercel environment variables. ' +
+                      'Pimlico bundler is REQUIRED for production. ' +
+                      'Please add PIMLICO_API_KEY to your Vercel project settings.'
+                    )
+                  }
+                  
+                  throw new Error(`Pimlico bundler proxy error: ${response.status} ${errorMessage}`)
+                }
+
+                return response
+              },
+            })
+          : http(`https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`)
+        
         if (usePimlicoBundler) {
-          // Use Pimlico bundler (works better with Pimlico paymaster)
-          // Pimlico bundler supports custom paymasters properly during gas estimation
-          // The bundler endpoint is public and doesn't require API key
-          bundlerUrl = `https://api.pimlico.io/v2/${FORCED_CHAIN.id}/rpc`
           console.log('[ZERODEV] 📦 Using Pimlico bundler (required for Pimlico paymaster)')
           console.log('[ZERODEV] ℹ️ Pimlico bundler supports custom paymasters during gas estimation')
+          console.log('[ZERODEV] 🔒 Bundler API key is secure on server, not exposed to client')
         } else {
-          // ZeroDev bundler (original - doesn't work well with custom paymasters)
-          bundlerUrl = `https://rpc.zerodev.app/api/v3/${zeroDevProjectId}/chain/${FORCED_CHAIN.id}`
           console.log('[ZERODEV] 📦 Using ZeroDev bundler')
         }
         
@@ -334,7 +379,7 @@ export function ZeroDevSmartWalletProvider({
         const client = createKernelAccountClient({
           account,
           chain: FORCED_CHAIN,
-          bundlerTransport: http(bundlerUrl), // Pimlico bundler (required for Pimlico paymaster)
+          bundlerTransport: bundlerTransport, // Pimlico bundler via secure proxy (required for Pimlico paymaster)
           paymaster: paymasterClient, // Pimlico paymaster
           client: publicClient,
         })
@@ -351,7 +396,25 @@ export function ZeroDevSmartWalletProvider({
         })
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)
-        console.log("[ZERODEV] Chain ID:", await client.getChainId())
+        
+        // Try to get chain ID to verify bundler connection
+        // This will fail if PIMLICO_API_KEY is not configured
+        try {
+          const chainId = await client.getChainId()
+          console.log("[ZERODEV] ✅ Chain ID verified:", chainId)
+        } catch (chainIdError) {
+          console.error("[ZERODEV] ⚠️ Failed to get chain ID (bundler connection test):", chainIdError)
+          // Don't fail the entire initialization - the client is still created
+          // The error will surface when trying to send a transaction
+          if (chainIdError instanceof Error && 
+              (chainIdError.message.includes('401') || 
+               chainIdError.message.includes('Unauthorized') ||
+               chainIdError.message.includes('PIMLICO_API_KEY'))) {
+            console.error("[ZERODEV] ❌ Pimlico API key issue detected")
+            console.error("[ZERODEV] 💡 Please verify PIMLICO_API_KEY is set correctly in Vercel environment variables")
+            console.error("[ZERODEV] 💡 Check: https://dashboard.pimlico.io to verify your API key is active")
+          }
+        }
 
         setKernelClient(client)
         setSmartAccountAddress(account.address)
