@@ -96,11 +96,13 @@ async function main() {
     where: { slug: 'fundamentos-mindfulness' },
     update: {},
     create: {
+      id: 'course_fundamentos_mindfulness',
       title: 'Fundamentos de Mindfulness',
       slug: 'fundamentos-mindfulness',
       summary: 'Aprende las bases de la atención plena y cómo aplicarla en tu vida diaria',
       description: 'Un curso completo que te guiará a través de los principios fundamentales del mindfulness, incluyendo técnicas de respiración, meditación y aplicación práctica en situaciones cotidianas.',
-      isPublished: true
+      isPublished: true,
+      updatedAt: new Date()
     }
   })
 
@@ -108,11 +110,13 @@ async function main() {
     where: { slug: 'manejo-ansiedad-estres' },
     update: {},
     create: {
+      id: 'course_manejo_ansiedad_estres',
       title: 'Manejo de Ansiedad y Estrés',
       slug: 'manejo-ansiedad-estres',
       summary: 'Técnicas efectivas para controlar la ansiedad y reducir el estrés',
       description: 'Descubre estrategias probadas para manejar la ansiedad y el estrés, incluyendo técnicas cognitivo-conductuales y herramientas de relajación.',
-      isPublished: true
+      isPublished: true,
+      updatedAt: new Date()
     }
   })
 
@@ -120,11 +124,13 @@ async function main() {
     where: { slug: 'comunicacion-asertiva' },
     update: {},
     create: {
+      id: 'course_comunicacion_asertiva',
       title: 'Comunicación Asertiva',
       slug: 'comunicacion-asertiva',
       summary: 'Mejora tus habilidades de comunicación y relaciones interpersonales',
       description: 'Aprende a comunicarte de manera efectiva, expresar tus necesidades y establecer límites saludables en tus relaciones.',
-      isPublished: true
+      isPublished: true,
+      updatedAt: new Date()
     }
   })
 
