@@ -189,16 +189,20 @@ export function ZeroDevSmartWalletProvider({
                 const method = requestBody.method || ''
                 
                 // ZeroDev-specific methods must go to ZeroDev bundler
-                // Standard ERC-4337 methods can go to Pimlico bundler
-                if (method.startsWith('zd_') || method.includes('zerodev')) {
+                // Gas estimation methods must go to ZeroDev bundler (Pimlico doesn't support eth_estimateUserOperationGas)
+                // Standard ERC-4337 send methods can go to Pimlico bundler
+                if (method.startsWith('zd_') || 
+                    method.includes('zerodev') ||
+                    method === 'eth_estimateUserOperationGas') {
                   shouldUseZeroDevBundler = true
-                  console.log('[ZERODEV] 🔀 Routing ZeroDev-specific method to ZeroDev bundler:', method)
+                  console.log('[ZERODEV] 🔀 Routing to ZeroDev bundler:', method)
                 } else {
-                  console.log('[ZERODEV] 📤 Routing standard method to Pimlico bundler:', method)
+                  console.log('[ZERODEV] 📤 Routing to Pimlico bundler:', method)
                 }
               } catch {
-                // If parsing fails, default to Pimlico
-                console.log('[ZERODEV] ⚠️ Could not parse request, defaulting to Pimlico bundler')
+                // If parsing fails, default to ZeroDev for safety
+                console.log('[ZERODEV] ⚠️ Could not parse request, defaulting to ZeroDev bundler')
+                shouldUseZeroDevBundler = true
               }
             }
             

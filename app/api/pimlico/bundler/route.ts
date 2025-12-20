@@ -51,6 +51,20 @@ export async function POST(request: NextRequest) {
     if (body.jsonrpc) {
       // This is a JSON-RPC request from viem - forward it as-is
       jsonRpcRequest = body as JsonRpcRequest
+      
+      // CRITICAL: Pimlico bundler rejects paymasterAndData during gas estimation
+      // Remove paymasterAndData from userOp during eth_estimateUserOperationGas
+      if (jsonRpcRequest.method === 'eth_estimateUserOperationGas' && 
+          jsonRpcRequest.params && 
+          Array.isArray(jsonRpcRequest.params) && 
+          jsonRpcRequest.params.length > 0) {
+        const userOp = jsonRpcRequest.params[0] as Record<string, unknown>
+        if (userOp && typeof userOp === 'object' && 'paymasterAndData' in userOp) {
+          console.log('[PIMLICO BUNDLER PROXY] 🔧 Removing paymasterAndData from gas estimation request')
+          const { paymasterAndData, ...userOpWithoutPaymaster } = userOp
+          jsonRpcRequest.params[0] = userOpWithoutPaymaster
+        }
+      }
     } else if (body.method) {
       // This is our custom format - convert to JSON-RPC
       jsonRpcRequest = {
