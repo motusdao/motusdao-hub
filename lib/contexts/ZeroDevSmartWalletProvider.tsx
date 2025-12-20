@@ -409,12 +409,10 @@ export function ZeroDevSmartWalletProvider({
         console.log('[ZERODEV] ✅ Paymaster configured - gasless transactions enabled', {
           paymaster: 'Pimlico (REQUIRED - ZeroDev does not work on mainnet)',
           smartWallets: 'ZeroDev Kernel',
-          bundler: usePimlicoBundler ? 'Pimlico (required for custom paymaster)' : 'ZeroDev',
+          bundler: 'Smart routing (ZeroDev-specific → ZeroDev, Standard → Pimlico)',
           chainId: FORCED_CHAIN.id,
           chainName: FORCED_CHAIN.name,
-          note: usePimlicoBundler 
-            ? 'Using Pimlico bundler + paymaster (ZeroDev bundler rejects custom paymasters during gas estimation)'
-            : 'Using ZeroDev bundler (may have issues with custom paymaster)'
+          note: 'Using smart bundler routing: ZeroDev-specific methods (zd_*) go to ZeroDev bundler, standard ERC-4337 methods go to Pimlico bundler. Paymaster is always Pimlico.'
         })
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)
