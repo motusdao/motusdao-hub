@@ -9,11 +9,9 @@ The application was experiencing errors when trying to send gasless transactions
 
 ### Root Cause
 
-The bundler routing logic was incorrectly routing `eth_estimateUserOperationGas` to ZeroDev bundler, which:
-- Rejects `paymasterAndData` during gas estimation
-- Causes validation errors when the userOp includes paymaster data
-
-Additionally, the code had an incorrect assumption that Pimlico doesn't support `eth_estimateUserOperationGas`, when in fact Pimlico **does support** this method.
+The bundler routing logic had two issues:
+1. **Pimlico bundler doesn't support `eth_estimateUserOperationGas` on Celo Mainnet** - The method is not available in Pimlico's API for chain 42220
+2. **ZeroDev bundler rejects `paymasterAndData` during gas estimation** - When routing to ZeroDev bundler, we must strip `paymasterAndData` before sending the request
 
 ## Solution Implemented
 
@@ -22,35 +20,44 @@ Additionally, the code had an incorrect assumption that Pimlico doesn't support 
 **File**: `lib/contexts/ZeroDevSmartWalletProvider.tsx`
 
 **Changes**:
-- Removed incorrect routing of `eth_estimateUserOperationGas` to ZeroDev bundler
-- Now routes all standard ERC-4337 methods (including `eth_estimateUserOperationGas`) to Pimlico bundler
+- Route `eth_estimateUserOperationGas` to ZeroDev bundler (Pimlico doesn't support it on Celo Mainnet)
+- **CRITICAL**: Strip `paymasterAndData` from userOp before sending to ZeroDev bundler for gas estimation
+- Route other standard ERC-4337 methods to Pimlico bundler
 - Only ZeroDev-specific methods (starting with `zd_` or containing `zerodev`) are routed to ZeroDev bundler
 
 **Before**:
+```typescript
+if (method.startsWith('zd_') || method.includes('zerodev')) {
+  shouldUseZeroDevBundler = true
+}
+// All other methods go to Pimlico bundler (but Pimlico doesn't support gas estimation on Celo)
+```
+
+**After**:
 ```typescript
 if (method.startsWith('zd_') || 
     method.includes('zerodev') ||
     method === 'eth_estimateUserOperationGas') {
   shouldUseZeroDevBundler = true
+  
+  // Strip paymasterAndData before sending to ZeroDev bundler
+  if (method === 'eth_estimateUserOperationGas') {
+    // Remove paymasterAndData from userOp
+    const { paymasterAndData, ...userOpWithoutPaymaster } = userOp
+    // ... update request body
+  }
 }
+// Other methods go to Pimlico bundler
 ```
 
-**After**:
-```typescript
-if (method.startsWith('zd_') || method.includes('zerodev')) {
-  shouldUseZeroDevBundler = true
-}
-// All other methods (including eth_estimateUserOperationGas) go to Pimlico bundler
-```
+### 2. Strip paymasterAndData Before Sending to ZeroDev Bundler
 
-### 2. Pimlico Bundler Proxy Already Handles paymasterAndData
+**File**: `lib/contexts/ZeroDevSmartWalletProvider.tsx`
 
-**File**: `app/api/pimlico/bundler/route.ts`
-
-The proxy already correctly strips `paymasterAndData` from userOps during gas estimation:
+The bundler routing logic now strips `paymasterAndData` from userOps before sending to ZeroDev bundler:
 - Detects `eth_estimateUserOperationGas` method
-- Removes `paymasterAndData` from the userOp before forwarding to Pimlico
-- This prevents validation errors
+- Removes `paymasterAndData` from the userOp before forwarding to ZeroDev bundler
+- This prevents validation errors from ZeroDev bundler
 
 ## Architecture After Fix
 
@@ -65,7 +72,9 @@ The proxy already correctly strips `paymasterAndData` from userOps during gas es
 ┌─────────────────────────────────────────┐
 │      Smart Bundler Router               │
 │  - ZeroDev-specific (zd_*) → ZeroDev    │
-│  - Standard ERC-4337 → Pimlico          │
+│  - Gas estimation → ZeroDev             │
+│    (paymasterAndData stripped)           │
+│  - Other ERC-4337 → Pimlico              │
 └─────────────────────────────────────────┘
                     │
         ┌───────────┴───────────┐
@@ -74,9 +83,9 @@ The proxy already correctly strips `paymasterAndData` from userOps during gas es
 ┌──────────────────┐  ┌──────────────────┐
 │  ZeroDev Bundler │  │ Pimlico Bundler   │
 │  (Direct)        │  │ Proxy             │
-│                  │  │ - Strips          │
-│                  │  │   paymasterAndData│
-│                  │  │ - Adds API key    │
+│  - Gas est. only │  │ - Adds API key    │
+│  - No paymaster  │  │ - Sends userOps   │
+│    data          │  │                   │
 └──────────────────┘  └──────────────────┘
                               │
                               ▼
@@ -88,9 +97,9 @@ The proxy already correctly strips `paymasterAndData` from userOps during gas es
 
 ## Benefits
 
-1. ✅ **Gas estimation works**: `eth_estimateUserOperationGas` now goes to Pimlico bundler which supports it
-2. ✅ **No validation errors**: `paymasterAndData` is automatically stripped during gas estimation
-3. ✅ **Consistent routing**: All standard ERC-4337 methods use Pimlico bundler
+1. ✅ **Gas estimation works**: `eth_estimateUserOperationGas` goes to ZeroDev bundler (which supports it on Celo)
+2. ✅ **No validation errors**: `paymasterAndData` is stripped before sending to ZeroDev bundler
+3. ✅ **Optimal routing**: Gas estimation uses ZeroDev, actual user operations use Pimlico bundler
 4. ✅ **ZeroDev compatibility**: ZeroDev-specific methods still work via ZeroDev bundler
 
 ## Testing

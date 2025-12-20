@@ -189,15 +189,35 @@ export function ZeroDevSmartWalletProvider({
                 requestBody = JSON.parse(options.body as string)
                 const method = requestBody.method || ''
                 
-                // ZeroDev-specific methods must go to ZeroDev bundler
-                // Gas estimation and standard ERC-4337 methods go to Pimlico bundler
-                // Pimlico bundler supports eth_estimateUserOperationGas and automatically strips paymasterAndData
-                if (method.startsWith('zd_') || method.includes('zerodev')) {
+                // CRITICAL: Pimlico bundler does NOT support eth_estimateUserOperationGas on Celo Mainnet
+                // We must use ZeroDev bundler for gas estimation, but strip paymasterAndData first
+                // ZeroDev bundler rejects paymasterAndData during gas estimation
+                if (method.startsWith('zd_') || 
+                    method.includes('zerodev') ||
+                    method === 'eth_estimateUserOperationGas') {
                   shouldUseZeroDevBundler = true
-                  console.log('[ZERODEV] 🔀 Routing to ZeroDev bundler (ZeroDev-specific method):', method)
+                  
+                  // CRITICAL FIX: ZeroDev bundler rejects paymasterAndData during gas estimation
+                  // Strip paymasterAndData from userOp before sending to ZeroDev bundler
+                  if (method === 'eth_estimateUserOperationGas' && 
+                      requestBody.params && 
+                      Array.isArray(requestBody.params) && 
+                      requestBody.params.length > 0) {
+                    const userOp = requestBody.params[0] as Record<string, unknown>
+                    if (userOp && typeof userOp === 'object' && 'paymasterAndData' in userOp) {
+                      console.log('[ZERODEV] 🔧 Removing paymasterAndData from gas estimation request (ZeroDev bundler requirement)')
+                      const { paymasterAndData, ...userOpWithoutPaymaster } = userOp
+                      const modifiedRequestBody = {
+                        ...requestBody,
+                        params: [userOpWithoutPaymaster, ...requestBody.params.slice(1)]
+                      }
+                      requestBodyToSend = JSON.stringify(modifiedRequestBody)
+                    }
+                  }
+                  
+                  console.log('[ZERODEV] 🔀 Routing to ZeroDev bundler:', method)
                 } else {
-                  // Route standard ERC-4337 methods (including eth_estimateUserOperationGas) to Pimlico bundler
-                  // The Pimlico bundler proxy will automatically strip paymasterAndData during gas estimation
+                  // Route other standard ERC-4337 methods to Pimlico bundler
                   console.log('[ZERODEV] 📤 Routing to Pimlico bundler:', method)
                 }
               } catch {
@@ -259,7 +279,8 @@ export function ZeroDevSmartWalletProvider({
         
         console.log('[ZERODEV] 📦 Using smart bundler routing:')
         console.log('[ZERODEV]   - ZeroDev-specific methods (zd_*) → ZeroDev bundler')
-        console.log('[ZERODEV]   - Standard ERC-4337 methods → Pimlico bundler')
+        console.log('[ZERODEV]   - Gas estimation (eth_estimateUserOperationGas) → ZeroDev bundler (paymasterAndData stripped)')
+        console.log('[ZERODEV]   - Other standard ERC-4337 methods → Pimlico bundler')
         console.log('[ZERODEV]   - Paymaster: Pimlico (REQUIRED for mainnet)')
         console.log('[ZERODEV] 🔒 Bundler API keys are secure on server, not exposed to client')
         
@@ -276,6 +297,14 @@ export function ZeroDevSmartWalletProvider({
         const paymasterClient = {
             async getPaymasterData(args: GetPaymasterDataParameters): Promise<GetPaymasterDataReturnType> {
               try {
+                console.log('[ZERODEV] 💰 getPaymasterData called with args:', {
+                  sender: args.sender,
+                  hasCallData: !!args.callData,
+                  callGasLimit: args.callGasLimit?.toString(),
+                  verificationGasLimit: args.verificationGasLimit?.toString(),
+                  preVerificationGas: args.preVerificationGas?.toString(),
+                })
+                
                 // Helper function to convert BigInt to hex string
                 const toHex = (value: bigint | string | undefined): string => {
                   if (!value) return '0x0'
@@ -306,6 +335,13 @@ export function ZeroDevSmartWalletProvider({
                 }
 
                 console.log('[ZERODEV] 📤 Calling Pimlico paymaster via secure proxy...')
+                console.log('[ZERODEV] 📋 UserOperation for paymaster:', {
+                  sender: userOperation.sender,
+                  callDataLength: userOperation.callData.length,
+                  callGasLimit: userOperation.callGasLimit,
+                  verificationGasLimit: userOperation.verificationGasLimit,
+                  preVerificationGas: userOperation.preVerificationGas,
+                })
 
                 // Call our server-side proxy endpoint (API key stays on server)
                 const response = await fetch('/api/pimlico/paymaster', {
@@ -342,12 +378,24 @@ export function ZeroDevSmartWalletProvider({
                 }
 
                 const result = await response.json()
-                console.log('[ZERODEV] ✅ Pimlico paymaster response received')
+                console.log('[ZERODEV] ✅ Pimlico paymaster response received:', {
+                  hasPaymasterAndData: !!result.paymasterAndData,
+                  paymasterAndDataLength: result.paymasterAndData?.length || 0,
+                  paymasterAndDataPreview: result.paymasterAndData?.substring(0, 20) || 'empty',
+                })
                 
                 // Convert Pimlico response to ZeroDev format
                 // GetPaymasterDataReturnType only expects paymasterAndData
                 // Gas limits are handled automatically by ZeroDev SDK
-                const paymasterAndData = result.paymasterAndData || '0x'
+                const paymasterAndData = result.paymasterAndData || result.paymasterAndData || '0x'
+                
+                if (paymasterAndData === '0x' || !paymasterAndData) {
+                  console.error('[ZERODEV] ❌ Paymaster returned empty paymasterAndData!')
+                  console.error('[ZERODEV] 📋 Full response:', JSON.stringify(result, null, 2))
+                  throw new Error('Pimlico paymaster returned empty paymasterAndData. Check that your Pimlico account has sufficient funds and the API key is valid.')
+                }
+                
+                console.log('[ZERODEV] ✅ Returning paymaster data, length:', paymasterAndData.length)
                 
                 // Return in ZeroDev's expected format
                 return {
@@ -414,10 +462,10 @@ export function ZeroDevSmartWalletProvider({
         console.log('[ZERODEV] ✅ Paymaster configured - gasless transactions enabled', {
           paymaster: 'Pimlico (REQUIRED - ZeroDev does not work on mainnet)',
           smartWallets: 'ZeroDev Kernel',
-          bundler: 'Smart routing (ZeroDev-specific → ZeroDev, Standard → Pimlico)',
+          bundler: 'Smart routing (Gas estimation → ZeroDev, Other methods → Pimlico)',
           chainId: FORCED_CHAIN.id,
           chainName: FORCED_CHAIN.name,
-          note: 'Using smart bundler routing: ZeroDev-specific methods (zd_*) go to ZeroDev bundler, standard ERC-4337 methods go to Pimlico bundler. Paymaster is always Pimlico.'
+          note: 'Using smart bundler routing: Gas estimation (eth_estimateUserOperationGas) goes to ZeroDev bundler with paymasterAndData stripped. Other methods go to Pimlico bundler. Paymaster is always Pimlico.'
         })
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)

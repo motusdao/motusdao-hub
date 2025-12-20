@@ -69,9 +69,25 @@ export async function POST(request: NextRequest) {
     const data = await response.json()
 
     if (data.error) {
-      console.error('[PIMLICO PROXY] RPC error:', data.error)
+      console.error('[PIMLICO PAYMASTER PROXY] ❌ RPC error:', data.error)
       return NextResponse.json(
         { error: `Pimlico API error: ${data.error.message || JSON.stringify(data.error)}` },
+        { status: 500 }
+      )
+    }
+
+    console.log('[PIMLICO PAYMASTER PROXY] ✅ Paymaster response:', {
+      hasResult: !!data.result,
+      hasPaymasterAndData: !!data.result?.paymasterAndData,
+      paymasterAndDataLength: data.result?.paymasterAndData?.length || 0,
+      paymasterAndDataPreview: data.result?.paymasterAndData?.substring(0, 20) || 'empty',
+    })
+
+    if (!data.result || !data.result.paymasterAndData) {
+      console.error('[PIMLICO PAYMASTER PROXY] ❌ Paymaster response missing paymasterAndData')
+      console.error('[PIMLICO PAYMASTER PROXY] 📋 Full response:', JSON.stringify(data, null, 2))
+      return NextResponse.json(
+        { error: 'Pimlico paymaster returned empty paymasterAndData. Check that your Pimlico account has sufficient funds.' },
         { status: 500 }
       )
     }
