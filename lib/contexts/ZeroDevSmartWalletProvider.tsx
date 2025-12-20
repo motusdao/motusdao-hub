@@ -182,7 +182,7 @@ export function ZeroDevSmartWalletProvider({
             // Parse the JSON-RPC request body to determine routing
             let requestBody: { method?: string; params?: unknown[]; jsonrpc?: string; id?: number | string | null } = {}
             let shouldUseZeroDevBundler = false
-            let requestBodyToSend = options?.body
+            const originalBody = options?.body
             
             if (options?.body) {
               try {
@@ -211,7 +211,7 @@ export function ZeroDevSmartWalletProvider({
                         ...requestBody,
                         params: [userOpWithoutPaymaster, ...requestBody.params.slice(1)]
                       }
-                      requestBodyToSend = JSON.stringify(modifiedRequestBody)
+                      requestBody = modifiedRequestBody
                     }
                   }
                   
@@ -231,6 +231,11 @@ export function ZeroDevSmartWalletProvider({
             const targetUrl = shouldUseZeroDevBundler 
               ? zeroDevBundlerUrl 
               : '/api/pimlico/bundler'
+            
+            // Use modified request body if we stripped paymasterAndData, otherwise use original
+            const requestBodyToSend = (shouldUseZeroDevBundler && requestBody.jsonrpc) 
+              ? JSON.stringify(requestBody)
+              : originalBody
             
             const response = await fetch(targetUrl, {
               method: 'POST',
