@@ -180,8 +180,9 @@ export function ZeroDevSmartWalletProvider({
         const bundlerTransport = http('/api/pimlico/bundler', {
           fetchFn: async (url, options) => {
             // Parse the JSON-RPC request body to determine routing
-            let requestBody: { method?: string; params?: unknown[] } = {}
+            let requestBody: { method?: string; params?: unknown[]; jsonrpc?: string; id?: number | string | null } = {}
             let shouldUseZeroDevBundler = false
+            let requestBodyToSend = options?.body
             
             if (options?.body) {
               try {
@@ -189,14 +190,14 @@ export function ZeroDevSmartWalletProvider({
                 const method = requestBody.method || ''
                 
                 // ZeroDev-specific methods must go to ZeroDev bundler
-                // Gas estimation methods must go to ZeroDev bundler (Pimlico doesn't support eth_estimateUserOperationGas)
-                // Standard ERC-4337 send methods can go to Pimlico bundler
-                if (method.startsWith('zd_') || 
-                    method.includes('zerodev') ||
-                    method === 'eth_estimateUserOperationGas') {
+                // Gas estimation and standard ERC-4337 methods go to Pimlico bundler
+                // Pimlico bundler supports eth_estimateUserOperationGas and automatically strips paymasterAndData
+                if (method.startsWith('zd_') || method.includes('zerodev')) {
                   shouldUseZeroDevBundler = true
-                  console.log('[ZERODEV] 🔀 Routing to ZeroDev bundler:', method)
+                  console.log('[ZERODEV] 🔀 Routing to ZeroDev bundler (ZeroDev-specific method):', method)
                 } else {
+                  // Route standard ERC-4337 methods (including eth_estimateUserOperationGas) to Pimlico bundler
+                  // The Pimlico bundler proxy will automatically strip paymasterAndData during gas estimation
                   console.log('[ZERODEV] 📤 Routing to Pimlico bundler:', method)
                 }
               } catch {
@@ -216,7 +217,7 @@ export function ZeroDevSmartWalletProvider({
               headers: {
                 'Content-Type': 'application/json',
               },
-              body: options?.body,
+              body: requestBodyToSend,
             })
 
             if (!response.ok) {
