@@ -419,7 +419,7 @@ function VideochatInner() {
                 </p>
                 <div className="pt-4">
                   <CTAButton
-                    variant="default"
+                    variant="primary"
                     size="lg"
                     className="w-full sm:w-auto min-w-[200px]"
                     onClick={() => {
