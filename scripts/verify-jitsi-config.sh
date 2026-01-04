@@ -82,3 +82,7 @@ echo "4. Reinicia Next.js: npm run dev"
 
 
 
+
+
+
+

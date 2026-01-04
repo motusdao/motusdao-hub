@@ -116,3 +116,7 @@ If you see errors about `PIMLICO_API_KEY not configured`, make sure:
 - `app/api/pimlico/paymaster/route.ts` - Paymaster proxy endpoint (existing)
 - `lib/contexts/ZeroDevSmartWalletProvider.tsx` - Smart wallet provider with bundler/paymaster configuration
 
+
+
+
+

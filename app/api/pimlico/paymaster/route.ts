@@ -29,8 +29,23 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Log the userOperation we received for debugging
+    console.log('[PIMLICO PAYMASTER PROXY] 📋 Received userOperation:', {
+      sender: userOperation.sender,
+      nonce: userOperation.nonce,
+      hasFactory: !!userOperation.factory,
+      hasFactoryData: !!userOperation.factoryData,
+      callDataLength: userOperation.callData?.length || 0,
+      hasSignature: !!userOperation.signature,
+      signaturePreview: userOperation.signature?.substring(0, 20) || 'none',
+    })
+
     // Pimlico API endpoint
     const pimlicoApiUrl = `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${pimlicoApiKey}`
+
+    // EntryPoint v0.7 address used on Celo (and other chains) for Kernel / ERC-4337
+    // This must be passed explicitly to pm_sponsorUserOperation
+    const entryPointAddress = '0x0000000071727De22E5E9d8BAf0edAc6f37da032'
 
     // Forward request to Pimlico
     const response = await fetch(pimlicoApiUrl, {
@@ -42,7 +57,11 @@ export async function POST(request: NextRequest) {
         jsonrpc: '2.0',
         id: 1,
         method: 'pm_sponsorUserOperation',
-        params: [userOperation, { chainId }],
+        // Per Pimlico docs for EntryPoint v0.7:
+        // params[0]: userOperation object (unpacked format with paymaster/paymasterData/etc set to null)
+        // params[1]: entryPoint address as STRING
+        // params[2]: optional sponsorshipPolicyId object
+        params: [userOperation, entryPointAddress],
       }),
     })
 
@@ -78,21 +97,45 @@ export async function POST(request: NextRequest) {
 
     console.log('[PIMLICO PAYMASTER PROXY] ✅ Paymaster response:', {
       hasResult: !!data.result,
-      hasPaymasterAndData: !!data.result?.paymasterAndData,
-      paymasterAndDataLength: data.result?.paymasterAndData?.length || 0,
-      paymasterAndDataPreview: data.result?.paymasterAndData?.substring(0, 20) || 'empty',
+      hasPaymaster: !!data.result?.paymaster,
+      hasPaymasterData: !!data.result?.paymasterData,
+      paymasterAddress: data.result?.paymaster || 'none',
+      paymasterDataLength: data.result?.paymasterData?.length || 0,
+      callGasLimit: data.result?.callGasLimit,
+      verificationGasLimit: data.result?.verificationGasLimit,
+      preVerificationGas: data.result?.preVerificationGas,
     })
 
-    if (!data.result || !data.result.paymasterAndData) {
-      console.error('[PIMLICO PAYMASTER PROXY] ❌ Paymaster response missing paymasterAndData')
+    // EntryPoint v0.7 returns unpacked format: paymaster, paymasterData, etc.
+    // EntryPoint v0.6 returns packed format: paymasterAndData
+    if (!data.result) {
+      console.error('[PIMLICO PAYMASTER PROXY] ❌ Paymaster response missing result')
       console.error('[PIMLICO PAYMASTER PROXY] 📋 Full response:', JSON.stringify(data, null, 2))
       return NextResponse.json(
-        { error: 'Pimlico paymaster returned empty paymasterAndData. Check that your Pimlico account has sufficient funds.' },
+        { error: 'Pimlico paymaster returned empty result. Check that your Pimlico account has sufficient funds.' },
         { status: 500 }
       )
     }
 
-    return NextResponse.json(data.result)
+    // Check for v0.7 unpacked format (paymaster + paymasterData)
+    if (data.result.paymaster && data.result.paymasterData !== undefined) {
+      console.log('[PIMLICO PAYMASTER PROXY] ✅ EntryPoint v0.7 response (unpacked format)')
+      return NextResponse.json(data.result)
+    }
+
+    // Check for v0.6 packed format (paymasterAndData)
+    if (data.result.paymasterAndData) {
+      console.log('[PIMLICO PAYMASTER PROXY] ✅ EntryPoint v0.6 response (packed format)')
+      return NextResponse.json(data.result)
+    }
+
+    // If neither format is present, it's an error
+    console.error('[PIMLICO PAYMASTER PROXY] ❌ Paymaster response missing both v0.6 and v0.7 paymaster fields')
+    console.error('[PIMLICO PAYMASTER PROXY] 📋 Full response:', JSON.stringify(data, null, 2))
+    return NextResponse.json(
+      { error: 'Pimlico paymaster returned invalid response format. Check that your Pimlico account has sufficient funds.' },
+      { status: 500 }
+    )
   } catch (error) {
     console.error('[PIMLICO PROXY] Error:', error)
     return NextResponse.json(

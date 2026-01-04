@@ -226,3 +226,7 @@ npm run dev
 - Configurar variables en Vercel
 
 
+
+
+
+

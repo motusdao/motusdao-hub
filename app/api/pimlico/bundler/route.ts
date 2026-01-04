@@ -52,17 +52,98 @@ export async function POST(request: NextRequest) {
       // This is a JSON-RPC request from viem - forward it as-is
       jsonRpcRequest = body as JsonRpcRequest
       
-      // CRITICAL: Pimlico bundler rejects paymasterAndData during gas estimation
-      // Remove paymasterAndData from userOp during eth_estimateUserOperationGas
-      if (jsonRpcRequest.method === 'eth_estimateUserOperationGas' && 
+      // CRITICAL: EntryPoint v0.7 uses unpacked format, but viem/ZeroDev may send packed format
+      // Convert paymasterAndData (packed v0.6) → paymaster/paymasterData (unpacked v0.7)
+      if ((jsonRpcRequest.method === 'eth_estimateUserOperationGas' || 
+           jsonRpcRequest.method === 'eth_sendUserOperation') &&
           jsonRpcRequest.params && 
           Array.isArray(jsonRpcRequest.params) && 
           jsonRpcRequest.params.length > 0) {
         const userOp = jsonRpcRequest.params[0] as Record<string, unknown>
-        if (userOp && typeof userOp === 'object' && 'paymasterAndData' in userOp) {
-          console.log('[PIMLICO BUNDLER PROXY] 🔧 Removing paymasterAndData from gas estimation request')
-          const { paymasterAndData, ...userOpWithoutPaymaster } = userOp
-          jsonRpcRequest.params[0] = userOpWithoutPaymaster
+        if (userOp && typeof userOp === 'object') {
+          // For gas estimation, remove all paymaster fields
+          if (jsonRpcRequest.method === 'eth_estimateUserOperationGas') {
+            if ('paymasterAndData' in userOp || 'paymaster' in userOp) {
+              console.log('[PIMLICO BUNDLER PROXY] 🔧 Removing paymaster fields from gas estimation request')
+              const { paymasterAndData, paymaster, paymasterData, paymasterVerificationGasLimit, paymasterPostOpGasLimit, ...userOpClean } = userOp
+              jsonRpcRequest.params[0] = userOpClean
+            }
+          }
+          // For eth_sendUserOperation, ensure proper v0.7 format
+          else if (jsonRpcRequest.method === 'eth_sendUserOperation') {
+            // CRITICAL: Check if UserOp has v0.7 unpacked format (paymaster field exists)
+            // If yes, we MUST remove paymasterAndData field (even if empty) because Pimlico rejects it
+            if ('paymaster' in userOp && userOp.paymaster) {
+              console.log('[PIMLICO BUNDLER PROXY] ✅ UserOp has v0.7 unpacked paymaster fields')
+              
+              // CRITICAL: Remove paymasterAndData if it exists alongside unpacked fields
+              // Viem/ZeroDev adds both, but Pimlico v0.7 API REJECTS UserOps with paymasterAndData
+              if ('paymasterAndData' in userOp) {
+                console.log('[PIMLICO BUNDLER PROXY] 🔧 Removing paymasterAndData from v0.7 unpacked UserOp')
+                const { paymasterAndData: _, ...userOpClean } = userOp
+                jsonRpcRequest.params[0] = userOpClean
+              }
+              
+              // Verify gas limits are present in the cleaned UserOp
+              const finalUserOp = jsonRpcRequest.params[0] as Record<string, unknown>
+              if (!finalUserOp.paymasterVerificationGasLimit || !finalUserOp.paymasterPostOpGasLimit) {
+                console.warn('[PIMLICO BUNDLER PROXY] ⚠️ Missing paymaster gas limits, adding defaults')
+                jsonRpcRequest.params[0] = {
+                  ...finalUserOp,
+                  paymasterVerificationGasLimit: finalUserOp.paymasterVerificationGasLimit || '0x0',
+                  paymasterPostOpGasLimit: finalUserOp.paymasterPostOpGasLimit || '0x0',
+                }
+              }
+              
+              console.log('[PIMLICO BUNDLER PROXY] 📋 Final paymaster fields:', {
+                paymaster: finalUserOp.paymaster,
+                paymasterDataLength: (finalUserOp.paymasterData as string)?.length || 0,
+                paymasterVerificationGasLimit: finalUserOp.paymasterVerificationGasLimit,
+                paymasterPostOpGasLimit: finalUserOp.paymasterPostOpGasLimit,
+                hasPaymasterAndData: 'paymasterAndData' in finalUserOp,
+              })
+              console.log('[PIMLICO BUNDLER PROXY] 📋 Gas limits in final UserOp:', {
+                callGasLimit: finalUserOp.callGasLimit,
+                verificationGasLimit: finalUserOp.verificationGasLimit,
+                preVerificationGas: finalUserOp.preVerificationGas,
+              })
+            }
+            // If only packed format exists (no paymaster field), convert it to unpacked
+            else if ('paymasterAndData' in userOp) {
+              const paymasterAndData = userOp.paymasterAndData as string
+              if (paymasterAndData && paymasterAndData !== '0x' && paymasterAndData.length > 42) {
+                console.log('[PIMLICO BUNDLER PROXY] 🔧 Converting packed paymasterAndData to unpacked v0.7 format')
+                console.log('[PIMLICO BUNDLER PROXY] 📋 UserOp gas limits before conversion:', {
+                  hasVerificationGasLimit: !!userOp.paymasterVerificationGasLimit,
+                  verificationGasLimit: userOp.paymasterVerificationGasLimit,
+                  hasPostOpGasLimit: !!userOp.paymasterPostOpGasLimit,
+                  postOpGasLimit: userOp.paymasterPostOpGasLimit,
+                })
+                
+                // paymasterAndData = paymaster (20 bytes / 40 hex chars) + paymasterData (rest)
+                const paymaster = '0x' + paymasterAndData.slice(2, 42)  // First 20 bytes
+                const paymasterData = '0x' + paymasterAndData.slice(42)  // Rest
+                const { paymasterAndData: _, ...userOpUnpacked } = userOp
+                
+                // CRITICAL: Use gas limits from userOp if they exist (should be set by getPaymasterData)
+                // Only default to '0x0' if they're truly missing
+                jsonRpcRequest.params[0] = {
+                  ...userOpUnpacked,
+                  paymaster,
+                  paymasterData,
+                  // Keep gas limits from userOp - they should be set by getPaymasterData
+                  paymasterVerificationGasLimit: userOp.paymasterVerificationGasLimit || '0x0',
+                  paymasterPostOpGasLimit: userOp.paymasterPostOpGasLimit || '0x0',
+                }
+                console.log('[PIMLICO BUNDLER PROXY] ✅ Converted to unpacked format:', {
+                  paymaster,
+                  paymasterDataLength: paymasterData.length,
+                  paymasterVerificationGasLimit: jsonRpcRequest.params[0].paymasterVerificationGasLimit,
+                  paymasterPostOpGasLimit: jsonRpcRequest.params[0].paymasterPostOpGasLimit,
+                })
+              }
+            }
+          }
         }
       }
     } else if (body.method) {
