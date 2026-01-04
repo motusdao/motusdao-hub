@@ -21,7 +21,11 @@
     "create-admin": "tsx scripts/create-admin-user.ts",
     "assign-admin-wallet": "tsx scripts/assign-admin-by-wallet.ts",
     "create-admin-wallet": "tsx scripts/create-admin-with-wallets.ts",
-    "update-privy-id": "tsx scripts/update-privy-id.ts"
+    "update-privy-id": "tsx scripts/update-privy-id.ts",
+    "mns:deploy": "npx hardhat run scripts/mns/deploy-mns.js --network celo",
+    "mns:deploy:testnet": "npx hardhat run scripts/mns/deploy-testnet.js --network alfajores",
+    "mns:test": "node scripts/mns/test-contract.js",
+    "mns:compile": "npx hardhat compile"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
@@ -66,12 +70,16 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@nomicfoundation/hardhat-toolbox": "^6.1.0",
+    "@openzeppelin/contracts": "^5.4.0",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
+    "dotenv": "^17.2.3",
     "eslint": "^9",
     "eslint-config-next": "^15.5.7",
+    "hardhat": "^2.22.0",
     "postcss": "^8.5.6",
     "shadcn": "^3.5.1",
     "tailwindcss": "^3.4.17",

@@ -32,6 +32,33 @@ export const celoMainnet = defineChain({
   },
 })
 
+// Celo Alfajores Testnet Configuration
+export const celoAlfajores = defineChain({
+  id: 44787,
+  name: 'Celo Alfajores',
+  network: 'celo-alfajores',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Celo',
+    symbol: 'CELO',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://alfajores-forno.celo-testnet.org'],
+    },
+    public: {
+      http: ['https://alfajores-forno.celo-testnet.org'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Celo Alfajores Explorer',
+      url: 'https://alfajores.celoscan.io',
+    },
+  },
+  testnet: true,
+})
+
 // Stable token addresses on Celo Mainnet
 // NOTE: Some addresses may need to be verified/updated
 export const CELO_STABLE_TOKENS = {
@@ -45,6 +72,32 @@ export const CELO_STABLE_TOKENS = {
   PSY: '0x249c893c4ef4f929ff2a08bc81f70f59ca902a20', // Psychology Token - UPDATE WITH ACTUAL ADDRESS
   MOT: '0xc39000920debd2aae90a08006cf9d013e2b1083b', // Motus Token - UPDATE WITH ACTUAL ADDRESS
 } as const
+
+// Smart Contract Addresses on Celo Mainnet
+export const CELO_CONTRACTS = {
+  // Motus Name Service (MNS) - Sistema de nombres descentralizado .motus
+  // ⚠️ ACTUALIZAR después de deployar el contrato con: npx hardhat run scripts/mns/deploy-mns.js --network celo
+  motusNameService: '0x0000000000000000000000000000000000000000',
+} as const
+
+// Stable token addresses on Celo Alfajores Testnet
+export const CELO_ALFAJORES_STABLE_TOKENS = {
+  cUSD: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1',
+  cEUR: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F',
+  cREAL: '0xE4D517785D091D3c54818832dB6094bcc2744545',
+} as const
+
+// Helper function to get the appropriate chain based on environment
+export function getCeloChain() {
+  const isProduction = process.env.NODE_ENV === 'production'
+  return isProduction ? celoMainnet : celoAlfajores
+}
+
+// Helper function to get stable token addresses based on environment
+export function getStableTokenAddresses() {
+  const isProduction = process.env.NODE_ENV === 'production'
+  return isProduction ? CELO_STABLE_TOKENS : CELO_ALFAJORES_STABLE_TOKENS
+}
 
 // Helper function to format Celo addresses for display
 export function formatCeloAddress(address: string, length: number = 6): string {

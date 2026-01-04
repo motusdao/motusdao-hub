@@ -41,3 +41,14 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Hardhat files
+cache/
+artifacts/
+typechain-types/
+
+# Hardhat deployment artifacts (contienen direcciones deployadas)
+deployments/
+
+# Flatten contracts (archivos temporales)
+flattened.sol
