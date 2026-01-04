@@ -311,13 +311,15 @@ export function ZeroDevSmartWalletProvider({
                 
                 // EntryPoint v0.7 uses "unpacked" UserOperation format per Pimlico docs
                 // https://docs.pimlico.io/references/paymaster/verifying-paymaster/endpoints
+                // Type assertion for v0.7 fields that may not be in the base type
+                const argsWithV07 = args as GetPaymasterDataParameters & { factory?: string; factoryData?: string }
                 const userOperation: Record<string, string | null> = {
                   sender: args.sender,
                   nonce: toHex(args.nonce),
                   // EntryPoint v0.7 uses factory/factoryData instead of initCode.
                   // Include them when present so undeployed accounts can be simulated (AA20 fix).
-                  ...(args as any).factory && { factory: (args as any).factory },
-                  ...(args as any).factoryData && { factoryData: (args as any).factoryData },
+                  ...(argsWithV07.factory && { factory: argsWithV07.factory }),
+                  ...(argsWithV07.factoryData && { factoryData: argsWithV07.factoryData }),
                   callData: args.callData,
                   callGasLimit: toHex(args.callGasLimit),
                   verificationGasLimit: toHex(args.verificationGasLimit),
@@ -337,7 +339,7 @@ export function ZeroDevSmartWalletProvider({
                 console.log('[ZERODEV] 📤 Calling Pimlico paymaster via secure proxy...')
                 console.log('[ZERODEV] 📋 UserOperation for paymaster:', {
                   sender: userOperation.sender,
-                  callDataLength: userOperation.callData.length,
+                  callDataLength: userOperation.callData?.length ?? 0,
                   callGasLimit: userOperation.callGasLimit,
                   verificationGasLimit: userOperation.verificationGasLimit,
                   preVerificationGas: userOperation.preVerificationGas,
@@ -408,7 +410,11 @@ export function ZeroDevSmartWalletProvider({
                   // The viem/permissionless SDK merges the return value from getPaymasterData
                   // into the final UserOp, so we MUST return the operation gas limits here
                   // (not just the paymaster-specific gas limits)
-                  const paymasterReturn: any = {
+                  const paymasterReturn: GetPaymasterDataReturnType & {
+                    callGasLimit?: bigint
+                    verificationGasLimit?: bigint
+                    preVerificationGas?: bigint
+                  } = {
                     paymaster: result.paymaster as `0x${string}`,
                     paymasterData: (result.paymasterData || '0x') as `0x${string}`,
                     paymasterVerificationGasLimit: toGasLimit(result.paymasterVerificationGasLimit),

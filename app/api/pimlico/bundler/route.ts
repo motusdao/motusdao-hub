@@ -135,11 +135,12 @@ export async function POST(request: NextRequest) {
                   paymasterVerificationGasLimit: userOp.paymasterVerificationGasLimit || '0x0',
                   paymasterPostOpGasLimit: userOp.paymasterPostOpGasLimit || '0x0',
                 }
+                const convertedUserOp = jsonRpcRequest.params[0] as Record<string, unknown>
                 console.log('[PIMLICO BUNDLER PROXY] ✅ Converted to unpacked format:', {
                   paymaster,
                   paymasterDataLength: paymasterData.length,
-                  paymasterVerificationGasLimit: jsonRpcRequest.params[0].paymasterVerificationGasLimit,
-                  paymasterPostOpGasLimit: jsonRpcRequest.params[0].paymasterPostOpGasLimit,
+                  paymasterVerificationGasLimit: convertedUserOp.paymasterVerificationGasLimit,
+                  paymasterPostOpGasLimit: convertedUserOp.paymasterPostOpGasLimit,
                 })
               }
             }
