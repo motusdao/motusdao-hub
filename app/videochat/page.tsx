@@ -176,6 +176,11 @@ function VideochatInner() {
     // Wait for token to load (or skip if not using JWT)
     if (isLoadingToken) return
 
+    // Si es ngrok, no intentar cargar el iframe (se mostrará la pantalla alternativa)
+    if (roomInfo.domain.includes('ngrok')) {
+      return
+    }
+
     // Limpia instancias previas si se re-renderiza
     if (api) {
       api.dispose()
@@ -226,11 +231,15 @@ function VideochatInner() {
         enableClosePage: false,
         // Remove time limits
         maxDuration: 0, // 0 = unlimited
+        // Skip ngrok browser warning for tunneled connections
+        disableDeepLinking: true,
       },
       interfaceConfigOverwrite: {
         // Configuraciones de UI opcionales
         SHOW_JITSI_WATERMARK: false,
         SHOW_WATERMARK_FOR_GUESTS: false,
+        // Additional settings to help with ngrok
+        DISABLE_VIDEO_BACKGROUND: true,
       },
     }
 
@@ -364,7 +373,7 @@ function VideochatInner() {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
               <CTAButton
                 variant="secondary"
                 size="sm"
@@ -384,25 +393,66 @@ function VideochatInner() {
               >
                 Copiar link de sala
               </CTAButton>
-              <CTAButton
-                variant="ghost"
-                size="sm"
-                onClick={handleReload}
-              >
-                <RefreshCcw className="w-4 h-4 mr-1" />
-                Recargar
-              </CTAButton>
+              {!roomInfo?.domain.includes('ngrok') && (
+                <CTAButton
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleReload}
+                >
+                  <RefreshCcw className="w-4 h-4 mr-1" />
+                  Recargar
+                </CTAButton>
+              )}
             </div>
           </div>
 
-          <div className="relative flex-1 rounded-xl overflow-hidden bg-black">
-            {(!isJitsiReady || isLoadingToken) && (
-              <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
-                {scriptError || isLoadingToken ? 'Configurando sala segura...' : 'Cargando componente de video...'}
+          {/* Si es ngrok, mostrar pantalla especial en lugar del iframe */}
+          {roomInfo?.domain.includes('ngrok') ? (
+            <div className="relative flex-1 rounded-xl overflow-hidden bg-gradient-to-br from-background via-background/95 to-background/90 border border-border/50 flex flex-col items-center justify-center gap-6 p-8">
+              <div className="text-center space-y-4 max-w-md">
+                <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-primary/10 mb-4">
+                  <Video className="w-10 h-10 text-primary" />
+                </div>
+                <h3 className="text-2xl font-semibold">Sala de Videochat Lista</h3>
+                <p className="text-muted-foreground">
+                  Tu sala de video está configurada y lista para usar. Haz clic en el botón de abajo para abrir Jitsi Meet en una nueva ventana.
+                </p>
+                <div className="pt-4">
+                  <CTAButton
+                    variant="default"
+                    size="lg"
+                    className="w-full sm:w-auto min-w-[200px]"
+                    onClick={() => {
+                      if (typeof window !== 'undefined' && roomInfo) {
+                        const protocol = getJitsiProtocol(roomInfo.domain)
+                        let domain = roomInfo.domain
+                        if (domain.includes('://')) {
+                          domain = new URL(domain).host
+                        }
+                        const url = `${protocol}://${domain}/${roomInfo.roomName}${jwtToken ? `?jwt=${jwtToken}` : ''}`
+                        window.open(url, '_blank', 'noopener,noreferrer')
+                      }
+                    }}
+                  >
+                    <Video className="w-5 h-5 mr-2" />
+                    Abrir Sala de Video
+                  </CTAButton>
+                </div>
+                <p className="text-xs text-muted-foreground pt-2">
+                  La sala se abrirá en una nueva ventana para una mejor experiencia
+                </p>
               </div>
-            )}
-            <div ref={containerRef} className="w-full h-full" />
-          </div>
+            </div>
+          ) : (
+            <div className="relative flex-1 rounded-xl overflow-hidden bg-black">
+              {(!isJitsiReady || isLoadingToken) && (
+                <div className="absolute inset-0 flex items-center justify-center text-muted-foreground text-sm">
+                  {scriptError || isLoadingToken ? 'Configurando sala segura...' : 'Cargando componente de video...'}
+                </div>
+              )}
+              <div ref={containerRef} className="w-full h-full" />
+            </div>
+          )}
 
           <p className="text-xs text-muted-foreground">
             Nota: en producción configura tu dominio de Jitsi en{' '}
