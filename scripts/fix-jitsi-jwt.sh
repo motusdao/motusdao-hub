@@ -48,3 +48,6 @@ echo "📝 Para verificar, ejecuta: ./scripts/test-jitsi-jwt.sh"
 
 
 
+
+
+

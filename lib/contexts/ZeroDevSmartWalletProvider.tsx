@@ -10,8 +10,8 @@ import {
 import { getEntryPoint, KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { signerToEcdsaValidator } from '@zerodev/ecdsa-validator'
 import { createPublicClient, createWalletClient, custom, http, type Address, type WalletClient, type Account, type Transport, type Chain } from 'viem'
-import type { GetPaymasterDataParameters, GetPaymasterDataReturnType, GetPaymasterStubDataReturnType } from 'viem/account-abstraction'
 import { celoMainnet } from '@/lib/celo'
+import { createPimlicoPaymasterConfig, PAYMASTER_DEBUG_INFO } from '@/lib/pimlico-paymaster'
 
 // FORZAR Celo Mainnet - no importa qué diga el dashboard
 const FORCED_CHAIN = celoMainnet // Chain ID 42220
@@ -113,6 +113,10 @@ export function ZeroDevSmartWalletProvider({
           type: w.walletClientType,
           chainId: w.chainId
         })))
+        
+        // Save EOA address for debugging
+        console.log('[ZERODEV] 🔑 EOA (Embedded Wallet) Address:', walletToUse.address)
+        console.log('[ZERODEV] ⚠️ Si esta EOA cambia entre sesiones, tu smart wallet cambiará también!')
         
         // Get the EIP1193 provider from the selected wallet
         const provider = await walletToUse.getEthereumProvider()
@@ -269,264 +273,32 @@ export function ZeroDevSmartWalletProvider({
         console.log('[ZERODEV] 🔒 Bundler API keys are secure on server, not exposed to client')
         
         // Paymaster Configuration: Pimlico is REQUIRED (ZeroDev paymaster doesn't work on mainnet with free plan)
-        console.log('[ZERODEV] 🔧 Setting up paymaster...')
-        console.log('[ZERODEV] 🔄 Using Pimlico paymaster (REQUIRED - ZeroDev does not work on mainnet)')
-        console.log('[ZERODEV] ℹ️ Smart wallets still created by ZeroDev, only paymaster is Pimlico')
-        console.log('[ZERODEV] 🔒 API key is secure on server, not exposed to client')
-        console.log('[ZERODEV] ⚠️ If PIMLICO_API_KEY is not set in Vercel, transactions will fail')
+        // Using centralized Pimlico paymaster configuration from lib/pimlico-paymaster.ts
+        console.log('[ZERODEV] 🔧 Setting up Pimlico paymaster...')
+        console.log('[ZERODEV] 📦 Using centralized config from lib/pimlico-paymaster.ts')
+        console.log('[ZERODEV] ℹ️ Smart wallets created by ZeroDev, paymaster by Pimlico')
+        console.log('[ZERODEV] 🔒 API key is secure on server via', PAYMASTER_DEBUG_INFO.proxyEndpoint)
         
-        // Create custom Pimlico paymaster client that calls our server-side proxy
-        // This keeps the API key secure on the server
-        // ZeroDev paymaster is NOT an option - it doesn't work on mainnet with free plan
-        const paymasterClient = {
-            async getPaymasterData(args: GetPaymasterDataParameters): Promise<GetPaymasterDataReturnType> {
-              try {
-                console.log('[ZERODEV] 💰 getPaymasterData called with args:', {
-                  sender: args.sender,
-                  hasCallData: !!args.callData,
-                  callGasLimit: args.callGasLimit?.toString(),
-                  verificationGasLimit: args.verificationGasLimit?.toString(),
-                  preVerificationGas: args.preVerificationGas?.toString(),
-                })
-                
-                // Helper function to convert BigInt to hex string
-                const toHex = (value: bigint | string | undefined): string => {
-                  if (!value) return '0x0'
-                  if (typeof value === 'string') {
-                    // If already hex string, ensure it has 0x prefix
-                    return value.startsWith('0x') ? value : `0x${value}`
-                  }
-                  // Convert BigInt to hex
-                  const hex = value.toString(16)
-                  return `0x${hex}`
-                }
-
-                // Serialize userOperation for Pimlico API
-                // GetPaymasterDataParameters has fields directly, not nested in userOperation
-                // Pimlico Verifying Paymaster simulates the userOp, so we need:
-                // - factory/factoryData for undeployed accounts (EntryPoint v0.7)
-                // - A dummy signature that Kernel's validator accepts during simulation
-                //   The Kernel ECDSA validator recognizes this specific pattern as a "skip validation" marker
-                const KERNEL_DUMMY_SIGNATURE = '0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c'
-                
-                // EntryPoint v0.7 uses "unpacked" UserOperation format per Pimlico docs
-                // https://docs.pimlico.io/references/paymaster/verifying-paymaster/endpoints
-                // Type assertion for v0.7 fields that may not be in the base type
-                const argsWithV07 = args as GetPaymasterDataParameters & { factory?: string; factoryData?: string }
-                const userOperation: Record<string, string | null> = {
-                  sender: args.sender,
-                  nonce: toHex(args.nonce),
-                  // EntryPoint v0.7 uses factory/factoryData instead of initCode.
-                  // Include them when present so undeployed accounts can be simulated (AA20 fix).
-                  ...(argsWithV07.factory && { factory: argsWithV07.factory }),
-                  ...(argsWithV07.factoryData && { factoryData: argsWithV07.factoryData }),
-                  callData: args.callData,
-                  callGasLimit: toHex(args.callGasLimit),
-                  verificationGasLimit: toHex(args.verificationGasLimit),
-                  preVerificationGas: toHex(args.preVerificationGas),
-                  maxFeePerGas: toHex(args.maxFeePerGas),
-                  maxPriorityFeePerGas: toHex(args.maxPriorityFeePerGas),
-                  // EntryPoint v0.7 unpacked format: separate paymaster fields (not paymasterAndData)
-                  paymaster: null,
-                  paymasterVerificationGasLimit: null,
-                  paymasterPostOpGasLimit: null,
-                  paymasterData: null,
-                  // CRITICAL: Include dummy signature for Kernel validation during Pimlico simulation
-                  // Without this, Kernel's validateUserOp reverts with AA23 (0x8baa579f = SignatureCheckFailed)
-                  signature: KERNEL_DUMMY_SIGNATURE,
-                }
-
-                console.log('[ZERODEV] 📤 Calling Pimlico paymaster via secure proxy...')
-                console.log('[ZERODEV] 📋 UserOperation for paymaster:', {
-                  sender: userOperation.sender,
-                  callDataLength: userOperation.callData?.length ?? 0,
-                  callGasLimit: userOperation.callGasLimit,
-                  verificationGasLimit: userOperation.verificationGasLimit,
-                  preVerificationGas: userOperation.preVerificationGas,
-                  hasFactory: !!userOperation.factory,
-                  hasFactoryData: !!userOperation.factoryData,
-                  hasSignature: !!userOperation.signature,
-                  signaturePreview: userOperation.signature?.substring(0, 30) + '...',
-                })
-
-                // Call our server-side proxy endpoint (API key stays on server)
-                const response = await fetch('/api/pimlico/paymaster', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({
-                    chainId: FORCED_CHAIN.id,
-                    userOperation,
-                  }),
-                })
-
-                if (!response.ok) {
-                  let errorData: { error?: string } = {}
-                  try {
-                    errorData = await response.json()
-                  } catch {
-                    const errorText = await response.text()
-                    errorData = { error: errorText }
-                  }
-                  console.error('[ZERODEV] ❌ Pimlico proxy error:', response.status, errorData)
-                  
-                  // If Pimlico API key not configured, provide clear error (don't fallback to ZeroDev)
-                  if (response.status === 500 && errorData.error?.includes('Pimlico API key not configured')) {
-                    const errorMsg = 'PIMLICO_API_KEY not configured in Vercel environment variables. ' +
-                      'Pimlico paymaster is REQUIRED for production. ' +
-                      'Please add PIMLICO_API_KEY to your Vercel project settings.'
-                    console.error('[ZERODEV] ❌', errorMsg)
-                    throw new Error(errorMsg)
-                  }
-                  
-                  throw new Error(`Pimlico proxy error: ${response.status} ${errorData.error || 'Unknown error'}`)
-                }
-
-                const result = await response.json()
-                
-                // EntryPoint v0.7 returns unpacked format: paymaster, paymasterData, etc.
-                // EntryPoint v0.6 returns packed format: paymasterAndData
-                console.log('[ZERODEV] ✅ Pimlico paymaster response received')
-                console.log('[ZERODEV] 📋 Full Pimlico response:', JSON.stringify(result, null, 2))
-                
-                // CRITICAL FIX for AA33: Return v0.7 unpacked format with gas limits
-                // Pimlico returns EntryPoint v0.7 format which includes separate gas limits
-                // These MUST be passed through or the EntryPoint will reject with AA33
-                if (result.paymaster && result.paymasterData !== undefined) {
-                  // v0.7 unpacked format from Pimlico
-                  console.log('[ZERODEV] ✅ Using v0.7 unpacked format with gas limits')
-                  
-                  // Convert gas limits from hex strings to bigint
-                  const toGasLimit = (value: string | undefined): bigint => {
-                    if (!value || value === '0x' || value === '0x0') return BigInt(0)
-                    return BigInt(value)
-                  }
-                  
-                  // CRITICAL FIX for AA34: Return ALL gas limits that Pimlico provides
-                  // Pimlico signs the UserOp with these EXACT gas values
-                  // If the UserOp has different values, the paymaster signature becomes invalid (AA34)
-                  // 
-                  // The viem/permissionless SDK merges the return value from getPaymasterData
-                  // into the final UserOp, so we MUST return the operation gas limits here
-                  // (not just the paymaster-specific gas limits)
-                  const paymasterReturn: GetPaymasterDataReturnType & {
-                    callGasLimit?: bigint
-                    verificationGasLimit?: bigint
-                    preVerificationGas?: bigint
-                  } = {
-                    paymaster: result.paymaster as `0x${string}`,
-                    paymasterData: (result.paymasterData || '0x') as `0x${string}`,
-                    paymasterVerificationGasLimit: toGasLimit(result.paymasterVerificationGasLimit),
-                    paymasterPostOpGasLimit: toGasLimit(result.paymasterPostOpGasLimit),
-                    // CRITICAL: Include operation gas limits from Pimlico
-                    // These MUST match the values Pimlico used when computing the signature
-                    // Without these, the SDK uses its own estimated values which may differ
-                    ...(result.callGasLimit && { callGasLimit: toGasLimit(result.callGasLimit) }),
-                    ...(result.verificationGasLimit && { verificationGasLimit: toGasLimit(result.verificationGasLimit) }),
-                    ...(result.preVerificationGas && { preVerificationGas: toGasLimit(result.preVerificationGas) }),
-                  }
-                  
-                  // Log all gas limits we're returning for debugging
-                  console.log('[ZERODEV] 💾 Pimlico gas limits being returned:', {
-                    callGasLimit: result.callGasLimit,
-                    verificationGasLimit: result.verificationGasLimit,
-                    preVerificationGas: result.preVerificationGas,
-                  })
-                  
-                  console.log('[ZERODEV] 📋 Returning paymaster fields:', {
-                    paymasterVerificationGasLimit: paymasterReturn.paymasterVerificationGasLimit?.toString(),
-                    paymasterPostOpGasLimit: paymasterReturn.paymasterPostOpGasLimit?.toString(),
-                    callGasLimit: paymasterReturn.callGasLimit?.toString(),
-                    verificationGasLimit: paymasterReturn.verificationGasLimit?.toString(),
-                    preVerificationGas: paymasterReturn.preVerificationGas?.toString(),
-                  })
-                  
-                  return paymasterReturn
-                } else if (result.paymasterAndData) {
-                  // v0.6 packed format: need to parse and extract gas limits
-                  console.log('[ZERODEV] ⚠️ Using v0.6 packed format - converting to v0.7')
-                  
-                  const paymasterAndData = result.paymasterAndData as string
-                  if (!paymasterAndData || paymasterAndData === '0x' || paymasterAndData.length < 42) {
-                    console.error('[ZERODEV] ❌ Invalid paymasterAndData!')
-                    throw new Error('Pimlico paymaster returned invalid data.')
-                  }
-                  
-                  // Extract paymaster address (first 20 bytes)
-                  const paymaster = ('0x' + paymasterAndData.slice(2, 42)) as `0x${string}`
-                  // Extract paymaster data (everything after address)
-                  const paymasterData = ('0x' + paymasterAndData.slice(42)) as `0x${string}`
-                  
-                  // For v0.6 format, we don't have explicit gas limits
-                  // Use reasonable defaults or let EntryPoint estimate
-                  return {
-                    paymaster,
-                    paymasterData,
-                    paymasterVerificationGasLimit: BigInt(100000), // Default verification gas
-                    paymasterPostOpGasLimit: BigInt(50000), // Default post-op gas
-                  }
-                } else {
-                  console.error('[ZERODEV] ❌ Paymaster returned neither v0.6 nor v0.7 format!')
-                  console.error('[ZERODEV] 📋 Full response:', JSON.stringify(result, null, 2))
-                  throw new Error('Pimlico paymaster returned invalid response format.')
-                }
-              } catch (error) {
-                const errorMessage = error instanceof Error ? error.message : String(error)
-                console.error('[ZERODEV] ❌ Pimlico paymaster error:', errorMessage)
-                
-                // If Pimlico is not configured, provide helpful error message
-                if (errorMessage.includes('Pimlico API key not configured') || 
-                    errorMessage.includes('PIMLICO_API_KEY not configured')) {
-                  const helpfulError = new Error(
-                    'Pimlico paymaster is REQUIRED but not configured. ' +
-                    'Please set PIMLICO_API_KEY in your Vercel environment variables. ' +
-                    'Get your API key from https://dashboard.pimlico.io. ' +
-                    'ZeroDev paymaster does not work on mainnet with free plan.'
-                  )
-                  console.error('[ZERODEV] 💡 Solution:', helpfulError.message)
-                  throw helpfulError
-                }
-                
-                // Re-throw other errors
-                throw error
-              }
-            },
-            async getPaymasterStubData(): Promise<GetPaymasterStubDataReturnType> {
-              // Return stub data for gas estimation
-              // CRITICAL: ZeroDev bundler REJECTS paymasterAndData during gas estimation
-              // The error "Unrecognized key: paymasterAndData" occurs if we include it
-              // However, the type requires paymasterAndData, so we return empty string
-              // The ZeroDev SDK might handle this differently, or we may need to use Pimlico bundler
-              // The actual paymaster data will be added later by getPaymasterData when the transaction is sent
-              // This is used during gas estimation before the actual userOp is created
-              // NOTE: If this still fails, we may need to use Pimlico bundler instead of ZeroDev bundler
-              return {
-                paymasterAndData: '0x' as `0x${string}`,
-              }
-            },
-        }
+        // Create paymaster config using the centralized utility
+        const customPaymaster = createPimlicoPaymasterConfig(FORCED_CHAIN.id)
         
-        // Pimlico client created successfully
-        // Note: Actual API call happens when transaction is sent
-        console.log('[ZERODEV] ✅ Pimlico paymaster client created', {
+        console.log('[ZERODEV] ✅ Pimlico paymaster configured', {
           chainId: FORCED_CHAIN.id,
-          note: 'Using Pimlico paymaster via secure server-side proxy. ' +
-                'IMPORTANT: PIMLICO_API_KEY must be set in Vercel environment variables for production.'
+          entryPoint: '0.7',
+          proxyUrl: PAYMASTER_DEBUG_INFO.proxyEndpoint,
+          paymasterAddress: PAYMASTER_DEBUG_INFO.paymasterAddress,
         })
         
         console.log('[ZERODEV] Creating Kernel account client...')
         console.log('[ZERODEV] Paymaster type: Pimlico (REQUIRED)')
         
-        // Create Kernel client using ZeroDev SDK
-        // Smart wallets are created by ZeroDev, but we use Pimlico for both bundler and paymaster
-        // CRITICAL: getPaymasterData now returns ALL gas limits from Pimlico
-        // This ensures the final UserOp uses the exact values Pimlico signed over (fixes AA34)
+        // Create Kernel client using ZeroDev SDK with custom paymaster
+        // The paymaster object with getPaymasterData/getPaymasterStubData is the correct format
         const client = createKernelAccountClient({
           account,
           chain: FORCED_CHAIN,
           bundlerTransport: bundlerTransport, // Pimlico bundler via secure proxy
-          paymaster: paymasterClient, // Pimlico paymaster (returns gas limits + signature)
+          paymaster: customPaymaster,
           client: publicClient,
         })
         
@@ -536,7 +308,7 @@ export function ZeroDevSmartWalletProvider({
           bundler: 'Smart routing (zd_* → ZeroDev, standard ERC-4337 → Pimlico)',
           chainId: FORCED_CHAIN.id,
           chainName: FORCED_CHAIN.name,
-          note: 'AA34 fix: getPaymasterData now returns ALL gas limits from Pimlico to ensure the final UserOp matches the signed values.'
+          note: 'AA33 fix: getPaymasterData now returns ALL gas limits from Pimlico to ensure the final UserOp matches the signed values.',
         })
         
         console.log("[ZERODEV] ✅ Smart account client created:", client.account.address)

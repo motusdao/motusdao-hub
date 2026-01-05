@@ -17,7 +17,8 @@ import {
   AlertCircle,
   Users,
   Heart,
-  Calendar
+  Calendar,
+  AtSign
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react'
@@ -25,6 +26,7 @@ import { useUIStore } from '@/lib/store'
 import { usePrivy, useWallets } from '@privy-io/react-auth'
 import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
 import { getEOAAddress } from '@/lib/wallet-utils'
+import { motusNameService } from '@/lib/motus-name-service'
 
 interface ProfileData {
   nombre: string
@@ -170,6 +172,10 @@ export default function PerfilPage() {
     externalUrl: string
   } | null>(null)
   const [isLoadingSession, setIsLoadingSession] = useState(false)
+  
+  // Motus Name state
+  const [motusName, setMotusName] = useState<string | null>(null)
+  const [isLoadingMotusName, setIsLoadingMotusName] = useState(false)
 
   // Fetch profile data from API
   useEffect(() => {
@@ -252,6 +258,26 @@ export default function PerfilPage() {
       fetchMatchData()
     }
   }, [userData?.id, userData?.role])
+
+  // Fetch Motus Name for the user's smart wallet
+  useEffect(() => {
+    const fetchMotusName = async () => {
+      const walletAddress = userData?.smartWalletAddress || smartAccountAddress
+      if (!walletAddress) return
+      
+      setIsLoadingMotusName(true)
+      try {
+        const name = await motusNameService.reverseLookup(walletAddress as `0x${string}`)
+        setMotusName(name)
+      } catch (err) {
+        console.error('Error fetching motus name:', err)
+      } finally {
+        setIsLoadingMotusName(false)
+      }
+    }
+    
+    fetchMotusName()
+  }, [userData?.smartWalletAddress, smartAccountAddress])
 
   // Fetch active therapy session
   useEffect(() => {
@@ -563,6 +589,52 @@ export default function PerfilPage() {
                           </p>
                         </div>
                       )}
+                      
+                      {/* Motus Names - Identidad Descentralizada */}
+                      <div className="p-3 glass-card rounded-lg border border-iris-500/30 bg-gradient-to-br from-iris-500/10 to-mauve-500/10">
+                        <div className="flex items-center justify-center space-x-2 mb-2">
+                          <AtSign className="w-4 h-4 text-iris-500" />
+                          <span className="text-xs text-muted-foreground">Identidad Descentralizada</span>
+                        </div>
+                        
+                        {isLoadingMotusName ? (
+                          <div className="flex items-center justify-center py-2">
+                            <Loader className="w-4 h-4 animate-spin text-iris-500" />
+                          </div>
+                        ) : motusName ? (
+                          <>
+                            <p className="text-lg font-bold text-center text-iris-400 mb-2">
+                              {motusName}.motus
+                            </p>
+                            <p className="text-xs text-muted-foreground text-center mb-3">
+                              Tu nombre registrado en la blockchain
+                            </p>
+                            <CTAButton 
+                              size="sm" 
+                              variant="secondary"
+                              className="w-full"
+                              onClick={() => window.location.href = '/motus-names'}
+                            >
+                              <AtSign className="w-4 h-4 mr-2" />
+                              Gestionar Nombres
+                            </CTAButton>
+                          </>
+                        ) : (
+                          <>
+                            <p className="text-sm text-center mb-3">
+                              Registra tu nombre <span className="font-bold text-iris-400">.motus</span>
+                            </p>
+                            <CTAButton 
+                              size="sm" 
+                              className="w-full"
+                              onClick={() => window.location.href = '/motus-names'}
+                            >
+                              <AtSign className="w-4 h-4 mr-2" />
+                              Registrar Nombre
+                            </CTAButton>
+                          </>
+                        )}
+                      </div>
                     </div>
                   )}
 

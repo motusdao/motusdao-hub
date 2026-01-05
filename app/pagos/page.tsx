@@ -20,18 +20,22 @@ import {
   QrCode,
   ChevronDown,
   ChevronUp,
-  RefreshCw
+  RefreshCw,
+  AtSign,
+  Search
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import dynamic from 'next/dynamic'
 import { QRCodeSVG } from 'qrcode.react'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePrivy } from '@privy-io/react-auth'
 import { useSmartAccount } from '@/lib/contexts/ZeroDevSmartWalletProvider'
 import { useWallets } from '@privy-io/react-auth'
 import { sendPaymentWithKernel, type PaymentParams } from '@/lib/payments'
 import { getCeloExplorerUrl } from '@/lib/celo'
 import { getAllTokenBalances, type TokenBalance } from '@/lib/balances'
+import { motusNameService } from '@/lib/motus-name-service'
+import type { Address } from 'viem'
 
 const paymentSteps = [
   {
@@ -145,6 +149,14 @@ export default function PagosPage() {
   const [tokenBalances, setTokenBalances] = useState<TokenBalance[]>([])
   const [isLoadingBalances, setIsLoadingBalances] = useState(false)
   const [selectedTokenForBalance, setSelectedTokenForBalance] = useState<string | null>(null)
+  
+  // MNS (Motus Name Service) states
+  const [isResolvingName, setIsResolvingName] = useState(false)
+  const [resolvedAddress, setResolvedAddress] = useState<Address | null>(null)
+  const [resolvedDisplayName, setResolvedDisplayName] = useState<string | null>(null)
+  const [nameResolutionError, setNameResolutionError] = useState<string | null>(null)
+  const [userMotusName, setUserMotusName] = useState<string | null>(null)
+  const [isLoadingUserMotusName, setIsLoadingUserMotusName] = useState(false)
 
   const handleQRScan = (decodedText: string) => {
     try {
@@ -159,7 +171,7 @@ export default function PagosPage() {
         // En el futuro se podría leer también `token`
       }
 
-      setSendAddress(scannedAddress)
+      handleRecipientChange(scannedAddress)
       if (amountParam) {
         setSendAmount(amountParam)
       }
@@ -169,6 +181,95 @@ export default function PagosPage() {
       setShowQRScanner(false)
     }
   }
+
+  // Resolve MNS name or validate address
+  const handleRecipientChange = useCallback(async (value: string) => {
+    setSendAddress(value)
+    setNameResolutionError(null)
+    setResolvedAddress(null)
+    setResolvedDisplayName(null)
+    setSendError(null)
+    setSendSuccess(null)
+    
+    if (!value || value.trim() === '') return
+    
+    const trimmedValue = value.trim()
+    
+    // Check if it looks like a .motus name (contains letters but not just hex)
+    const looksLikeName = !trimmedValue.startsWith('0x') || 
+      trimmedValue.toLowerCase().includes('.motus') ||
+      /^[a-z0-9-]+$/i.test(trimmedValue.replace('.motus', ''))
+    
+    // If it's clearly an address, just validate it
+    if (trimmedValue.startsWith('0x') && trimmedValue.length === 42 && !trimmedValue.toLowerCase().includes('.motus')) {
+      // It's a valid address format
+      setResolvedAddress(trimmedValue as Address)
+      
+      // Try to find display name via reverse lookup
+      setIsResolvingName(true)
+      try {
+        const name = await motusNameService.reverseLookup(trimmedValue as Address)
+        if (name) {
+          setResolvedDisplayName(name + '.motus')
+        }
+      } catch (err) {
+        // Ignore errors in reverse lookup
+        console.log('Reverse lookup failed, using address only')
+      } finally {
+        setIsResolvingName(false)
+      }
+      return
+    }
+    
+    // If it looks like a name, try to resolve it
+    if (looksLikeName || trimmedValue.includes('.motus')) {
+      setIsResolvingName(true)
+      
+      try {
+        const resolved = await motusNameService.resolveInput(trimmedValue)
+        
+        if (resolved.type === 'invalid') {
+          setNameResolutionError('Formato inválido. Usa una dirección 0x... o un nombre .motus')
+        } else if (resolved.address) {
+          setResolvedAddress(resolved.address)
+          setResolvedDisplayName(resolved.displayName ? resolved.displayName + '.motus' : null)
+        } else if (resolved.type === 'name') {
+          setNameResolutionError(`El nombre "${trimmedValue}" no está registrado en Motus Name Service`)
+        }
+      } catch (err) {
+        console.error('Error resolving MNS name:', err)
+        setNameResolutionError('Error al resolver el nombre. Verifica tu conexión.')
+      } finally {
+        setIsResolvingName(false)
+      }
+    } else {
+      // Invalid format
+      setNameResolutionError('Dirección inválida. Debe empezar con 0x y tener 42 caracteres.')
+    }
+  }, [])
+
+  // Load user's .motus name for receive section
+  useEffect(() => {
+    const loadUserMotusName = async () => {
+      if (!smartAccountAddress) {
+        setUserMotusName(null)
+        return
+      }
+      
+      setIsLoadingUserMotusName(true)
+      try {
+        const name = await motusNameService.reverseLookup(smartAccountAddress as Address)
+        setUserMotusName(name ? name + '.motus' : null)
+      } catch (err) {
+        console.error('Error loading user motus name:', err)
+        setUserMotusName(null)
+      } finally {
+        setIsLoadingUserMotusName(false)
+      }
+    }
+    
+    loadUserMotusName()
+  }, [smartAccountAddress])
 
   // Lista de tokens disponibles con información
   const availableTokens = [
@@ -216,8 +317,17 @@ export default function PagosPage() {
       return
     }
 
-    if (!sendAddress || !sendAddress.startsWith('0x') || sendAddress.length !== 42) {
-      setSendError('Por favor ingresa una dirección de destino válida')
+    // Use resolved address if available, otherwise use the input
+    const targetAddress = resolvedAddress || sendAddress
+    
+    if (!targetAddress) {
+      setSendError('Por favor ingresa una dirección o nombre .motus de destino')
+      return
+    }
+    
+    // Validate that we have a proper address (either direct or resolved)
+    if (typeof targetAddress === 'string' && (!targetAddress.startsWith('0x') || targetAddress.length !== 42)) {
+      setSendError('Dirección inválida. Resuelve el nombre .motus primero o usa una dirección válida.')
       return
     }
 
@@ -233,10 +343,17 @@ export default function PagosPage() {
     try {
       const params: PaymentParams = {
         from: smartAccountAddress || '0x0' as `0x${string}`,
-        to: sendAddress as `0x${string}`,
+        to: targetAddress as `0x${string}`,
         amount: sendAmount,
         currency: selectedToken,
       }
+
+      console.log('🔄 Enviando pago...', {
+        to: targetAddress,
+        displayName: resolvedDisplayName,
+        amount: sendAmount,
+        token: selectedToken
+      })
 
       const result = await sendPaymentWithKernel(kernelClient, params)
 
@@ -248,6 +365,8 @@ export default function PagosPage() {
         // Limpiar formulario después de éxito
         setSendAddress('')
         setSendAmount('')
+        setResolvedAddress(null)
+        setResolvedDisplayName(null)
       } else {
         setSendError(result.error || 'Error al enviar el pago')
       }
@@ -988,18 +1107,67 @@ export default function PagosPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
                       <div>
-                        <label className="block text-sm font-medium mb-1">
-                          Dirección de destino
+                        <label className="block text-sm font-medium mb-1 flex items-center">
+                          <AtSign className="w-4 h-4 mr-2 text-mauve-400" />
+                          Destinatario
                         </label>
-                        <input
-                          value={sendAddress}
-                          onChange={(e) => setSendAddress(e.target.value)}
-                          placeholder="Pega aquí la dirección hash a la que quieres enviar fondos"
-                          className="w-full rounded-xl border border-white/15 bg-background/60 px-3 py-2 text-sm font-mono text-muted-foreground focus:outline-none focus:ring-2 focus:ring-mauve-500/60"
-                        />
+                        <div className="relative">
+                          <input
+                            value={sendAddress}
+                            onChange={(e) => handleRecipientChange(e.target.value)}
+                            placeholder="nombre.motus o 0x..."
+                            className={`w-full rounded-xl border bg-background/60 px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-mauve-500/60 ${
+                              resolvedAddress 
+                                ? 'border-green-500/50 text-foreground' 
+                                : nameResolutionError 
+                                  ? 'border-red-500/50 text-red-400'
+                                  : 'border-white/15 text-muted-foreground'
+                            }`}
+                          />
+                          {isResolvingName && (
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                              <Search className="w-4 h-4 text-mauve-400 animate-pulse" />
+                            </div>
+                          )}
+                        </div>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Asegúrate de que la dirección sea compatible con la red configurada para tu smart wallet.
+                          💡 Usa un nombre <span className="text-mauve-400 font-medium">.motus</span> o pega una dirección 0x...
                         </p>
+                        
+                        {/* Name Resolution Status */}
+                        {isResolvingName && (
+                          <div className="mt-2 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                            <p className="text-xs text-blue-400 flex items-center">
+                              <Loader className="w-3 h-3 mr-2 animate-spin" />
+                              Resolviendo nombre...
+                            </p>
+                          </div>
+                        )}
+                        
+                        {resolvedAddress && !isResolvingName && (
+                          <div className="mt-2 p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                            <p className="text-xs text-green-400 font-medium mb-1 flex items-center">
+                              <CheckCircle className="w-3 h-3 mr-2" />
+                              Destinatario verificado
+                            </p>
+                            {resolvedDisplayName && (
+                              <p className="text-sm text-green-300 font-semibold mb-1">
+                                📛 {resolvedDisplayName}
+                              </p>
+                            )}
+                            <p className="text-xs font-mono text-green-500/80 break-all">
+                              {resolvedAddress}
+                            </p>
+                          </div>
+                        )}
+                        
+                        {nameResolutionError && !isResolvingName && (
+                          <div className="mt-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                            <p className="text-xs text-red-400">
+                              ❌ {nameResolutionError}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -1147,22 +1315,54 @@ export default function PagosPage() {
                       <div className="p-4 rounded-xl border border-white/10 bg-white/5">
                         <h3 className="text-sm font-semibold mb-2">Resumen de envío</h3>
                         <p className="text-xs text-muted-foreground mb-1">
-                          Desde tu smart wallet (gasless) hacia la dirección de destino.
+                          Desde tu smart wallet (gasless) hacia el destinatario.
                         </p>
-                        {sendAddress && (
+                        
+                        {/* Show resolved address info */}
+                        {resolvedAddress && (
+                          <div className="mt-3 space-y-2">
+                            <div className="p-3 rounded-lg bg-mauve-500/10 border border-mauve-500/20">
+                              <p className="text-[11px] text-muted-foreground mb-1">Destinatario:</p>
+                              {resolvedDisplayName && (
+                                <p className="text-sm font-semibold text-mauve-400 mb-1">
+                                  {resolvedDisplayName}
+                                </p>
+                              )}
+                              <p className="text-[11px] font-mono break-all text-foreground/80">
+                                {resolvedAddress}
+                              </p>
+                            </div>
+                            
+                            {sendAmount && parseFloat(sendAmount) > 0 && (
+                              <div className="p-3 rounded-lg bg-mauve-500/10 border border-mauve-500/20">
+                                <p className="text-[11px] text-muted-foreground mb-1">Monto a enviar:</p>
+                                <p className="text-lg font-bold text-foreground">
+                                  {sendAmount} <span className="text-mauve-400">{selectedToken}</span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {!resolvedAddress && sendAddress && (
                           <div className="mt-2">
                             <p className="text-[11px] text-muted-foreground mb-1">
-                              Dirección de destino:
+                              Input actual:
                             </p>
-                            <p className="text-[11px] font-mono break-all">
+                            <p className="text-[11px] font-mono break-all text-yellow-400">
                               {sendAddress}
+                            </p>
+                            <p className="text-[10px] text-yellow-500/80 mt-1">
+                              ⚠️ Esperando validación del destinatario...
                             </p>
                           </div>
                         )}
-                        <p className="text-xs text-muted-foreground">
-                          Esta sección mostrará el detalle de la transacción y el costo estimado cuando la
-                          integración onchain esté activa.
-                        </p>
+                        
+                        {!sendAddress && (
+                          <p className="text-xs text-muted-foreground mt-2">
+                            Ingresa un nombre .motus o dirección para ver el resumen.
+                          </p>
+                        )}
                       </div>
 
                       {sendError && (
@@ -1191,12 +1391,21 @@ export default function PagosPage() {
                         size="lg"
                         className="w-full"
                         onClick={handleSendPayment}
-                        disabled={isSending || !kernelClient || isInitializing || !sendAddress || !sendAmount}
+                        disabled={isSending || !kernelClient || isInitializing || !resolvedAddress || !sendAmount || isResolvingName}
                       >
                         {isSending ? (
                           <>
                             <Loader className="w-4 h-4 mr-2 animate-spin" />
                             Enviando...
+                          </>
+                        ) : isResolvingName ? (
+                          <>
+                            <Search className="w-4 h-4 mr-2 animate-pulse" />
+                            Resolviendo nombre...
+                          </>
+                        ) : resolvedDisplayName ? (
+                          <>
+                            Enviar a {resolvedDisplayName}
                           </>
                         ) : (
                           'Enviar desde mi smart wallet'
@@ -1207,6 +1416,67 @@ export default function PagosPage() {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
+                      {/* Motus Name Display */}
+                      {isLoadingUserMotusName ? (
+                        <div className="p-4 rounded-xl border border-mauve-500/30 bg-mauve-500/10">
+                          <div className="flex items-center">
+                            <Loader className="w-4 h-4 mr-2 animate-spin text-mauve-400" />
+                            <span className="text-sm text-muted-foreground">Buscando tu nombre .motus...</span>
+                          </div>
+                        </div>
+                      ) : userMotusName ? (
+                        <div className="p-4 rounded-xl border border-mauve-500/40 bg-gradient-to-r from-mauve-500/20 to-iris-500/20">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-xs text-muted-foreground">Tu nombre .motus:</span>
+                            <span className="px-2 py-0.5 bg-mauve-500/30 text-mauve-400 text-xs rounded-full">Registrado</span>
+                          </div>
+                          <p className="text-2xl font-bold text-mauve-400 mb-2">
+                            📛 {userMotusName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            Los demás pueden enviarte cripto usando solo tu nombre. ¡Más fácil que compartir una dirección!
+                          </p>
+                          <CTAButton
+                            size="sm"
+                            variant="secondary"
+                            className="mt-3"
+                            onClick={async () => {
+                              if (userMotusName) {
+                                try {
+                                  await navigator.clipboard.writeText(userMotusName)
+                                  alert('Nombre .motus copiado al portapapeles.')
+                                } catch (err) {
+                                  console.error('Error copiando:', err)
+                                }
+                              }
+                            }}
+                          >
+                            <AtSign className="w-4 h-4 mr-2" />
+                            Copiar nombre
+                          </CTAButton>
+                        </div>
+                      ) : (
+                        <div className="p-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10">
+                          <p className="text-sm font-medium text-yellow-400 mb-2">
+                            💡 ¡Aún no tienes un nombre .motus!
+                          </p>
+                          <p className="text-xs text-muted-foreground mb-3">
+                            Registra un nombre .motus para que los demás puedan enviarte cripto de forma más fácil. 
+                            En lugar de compartir una dirección larga, solo comparte tu nombre.
+                          </p>
+                          <CTAButton
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => {
+                              window.location.href = '/motus-names'
+                            }}
+                          >
+                            <AtSign className="w-4 h-4 mr-2" />
+                            Registrar nombre .motus
+                          </CTAButton>
+                        </div>
+                      )}
+
                       <div>
                         <label className="block text-sm font-medium mb-1">
                           Tu dirección de smart wallet
@@ -1259,6 +1529,11 @@ export default function PagosPage() {
                       <div className="p-4 rounded-xl border border-white/10 bg-white/5 flex flex-col items-center justify-center min-h-[220px]">
                         {smartAccountAddress || userData?.smartWalletAddress ? (
                           <>
+                            {userMotusName && (
+                              <div className="mb-3 px-3 py-1 bg-mauve-500/20 rounded-full">
+                                <span className="text-sm font-medium text-mauve-400">{userMotusName}</span>
+                              </div>
+                            )}
                             <QRCodeSVG
                               value={smartAccountAddress || userData?.smartWalletAddress || ''}
                               size={180}
@@ -1266,7 +1541,10 @@ export default function PagosPage() {
                               includeMargin
                             />
                             <p className="mt-3 text-xs text-muted-foreground text-center">
-                              Comparte este código QR para recibir pagos directamente en tu smart wallet.
+                              {userMotusName 
+                                ? `Comparte tu nombre "${userMotusName}" o escanea este QR para recibir pagos.`
+                                : 'Comparte este código QR para recibir pagos directamente en tu smart wallet.'
+                              }
                             </p>
                           </>
                         ) : (

@@ -32,7 +32,34 @@ export const celoMainnet = defineChain({
   },
 })
 
-// Celo Alfajores Testnet Configuration
+// Celo Sepolia Testnet Configuration (nueva testnet oficial)
+export const celoSepolia = defineChain({
+  id: 11142220,
+  name: 'Celo Sepolia',
+  network: 'celo-sepolia',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Celo',
+    symbol: 'CELO',
+  },
+  rpcUrls: {
+    default: {
+      http: ['https://forno.sepolia.celo-testnet.org'], // RPC de Celo Sepolia
+    },
+    public: {
+      http: ['https://forno.sepolia.celo-testnet.org'],
+    },
+  },
+  blockExplorers: {
+    default: {
+      name: 'Celo Sepolia Explorer',
+      url: 'https://sepolia.celoscan.io',
+    },
+  },
+  testnet: true,
+})
+
+// Celo Alfajores Testnet Configuration (deprecated, usar Sepolia)
 export const celoAlfajores = defineChain({
   id: 44787,
   name: 'Celo Alfajores',
@@ -76,11 +103,19 @@ export const CELO_STABLE_TOKENS = {
 // Smart Contract Addresses on Celo Mainnet
 export const CELO_CONTRACTS = {
   // Motus Name Service (MNS) - Sistema de nombres descentralizado .motus
-  // ⚠️ ACTUALIZAR después de deployar el contrato con: npx hardhat run scripts/mns/deploy-mns.js --network celo
-  motusNameService: '0x0000000000000000000000000000000000000000',
+  // ✅ Deployado: Jan 4, 2026
+  // Explorer: https://explorer.celo.org/mainnet/address/0x4eB280b21de012FCAe14c9aB2D29b298c0A91d1c
+  motusNameService: '0x4eB280b21de012FCAe14c9aB2D29b298c0A91d1c',
 } as const
 
-// Stable token addresses on Celo Alfajores Testnet
+// Stable token addresses on Celo Sepolia Testnet
+export const CELO_SEPOLIA_STABLE_TOKENS = {
+  cUSD: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1', // Verificar en Sepolia
+  cEUR: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F', // Verificar en Sepolia
+  cREAL: '0xE4D517785D091D3c54818832dB6094bcc2744545', // Verificar en Sepolia
+} as const
+
+// Stable token addresses on Celo Alfajores Testnet (deprecated)
 export const CELO_ALFAJORES_STABLE_TOKENS = {
   cUSD: '0x874069Fa1Eb16D44d622F2e0Ca25eeA172369bC1',
   cEUR: '0x10c892A6EC43a53E45D0B916B4b7D383B1b78C0F',
@@ -90,13 +125,13 @@ export const CELO_ALFAJORES_STABLE_TOKENS = {
 // Helper function to get the appropriate chain based on environment
 export function getCeloChain() {
   const isProduction = process.env.NODE_ENV === 'production'
-  return isProduction ? celoMainnet : celoAlfajores
+  return isProduction ? celoMainnet : celoSepolia
 }
 
 // Helper function to get stable token addresses based on environment
 export function getStableTokenAddresses() {
   const isProduction = process.env.NODE_ENV === 'production'
-  return isProduction ? CELO_STABLE_TOKENS : CELO_ALFAJORES_STABLE_TOKENS
+  return isProduction ? CELO_STABLE_TOKENS : CELO_SEPOLIA_STABLE_TOKENS
 }
 
 // Helper function to format Celo addresses for display

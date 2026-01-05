@@ -3,6 +3,14 @@ import { NextRequest, NextResponse } from 'next/server'
 /**
  * API Route para proxy de Pimlico Paymaster
  * Mantiene la API key segura en el servidor
+ * 
+ * Soporta los siguientes métodos de ERC-4337 v0.7:
+ * - pm_getPaymasterStubData: Para estimación de gas (requiere 3 params: userOp, entryPoint, context/chainId)
+ * - pm_getPaymasterData: Para datos finales del paymaster (requiere 3 params)
+ * - pm_sponsorUserOperation: Método legacy/combinado (requiere 2 params: userOp, entryPoint)
+ * 
+ * IMPORTANTE: Los métodos pm_getPaymaster* de v0.7 requieren params[2] que es el context/chainId.
+ * Este proxy añade automáticamente el chainId si falta.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +19,14 @@ export async function POST(request: NextRequest) {
     if (!pimlicoApiKey) {
       console.error('[PIMLICO PAYMASTER PROXY] ❌ PIMLICO_API_KEY not configured in environment variables')
       return NextResponse.json(
-        { error: 'Pimlico API key not configured. Please set PIMLICO_API_KEY in Vercel environment variables.' },
+        { 
+          jsonrpc: '2.0',
+          id: 1,
+          error: { 
+            code: -32000,
+            message: 'Pimlico API key not configured. Please set PIMLICO_API_KEY in Vercel environment variables.' 
+          }
+        },
         { status: 500 }
       )
     }
@@ -20,34 +35,73 @@ export async function POST(request: NextRequest) {
     console.log('[PIMLICO PAYMASTER PROXY] ✅ API key found, length:', pimlicoApiKey.length)
 
     const body = await request.json()
-    const { chainId, userOperation } = body
-
-    if (!chainId || !userOperation) {
+    
+    // Get chain ID from URL query params or body - NEEDED for v0.7 methods
+    // Official Pimlico client calls /api/pimlico/paymaster?chainId=42220
+    const url = new URL(request.url)
+    const chainId = url.searchParams.get('chainId') || body.chainId || '42220' // Default to Celo Mainnet
+    const chainIdNumber = parseInt(chainId, 10)
+    
+    // Support both JSON-RPC format (from official Pimlico client) and custom format (legacy)
+    let method: string
+    let params: unknown[]
+    let rpcId: number | string
+    
+    if (body.method && body.params) {
+      // JSON-RPC format from official Pimlico client
+      method = body.method
+      params = [...(body.params || [])] // Clone the params array
+      rpcId = body.id || 1
+      console.log('[PIMLICO PAYMASTER PROXY] 📋 Received JSON-RPC request:', { method, paramsCount: params.length })
+      
+      // CRITICAL FIX: v0.7 paymaster methods require 3 params
+      // params[0]: userOp (partial or full)
+      // params[1]: entryPoint address
+      // params[2]: context (chainId or context object)
+      // If params[2] is missing, add the chainId
+      if (method === 'pm_getPaymasterStubData' || method === 'pm_getPaymasterData') {
+        // Ensure we have exactly 3 params
+        if (params.length < 3) {
+          console.log('[PIMLICO PAYMASTER PROXY] 🔧 Adding missing chainId context (required for v0.7)')
+          // Add the chainId as context (Pimlico accepts either number or hex string)
+          params[2] = `0x${chainIdNumber.toString(16)}`
+          console.log('[PIMLICO PAYMASTER PROXY] 📋 Updated params:', { 
+            paramsCount: params.length, 
+            context: params[2] 
+          })
+        } else if (params[2] === null || params[2] === undefined) {
+          // params[2] exists but is null/undefined
+          params[2] = `0x${chainIdNumber.toString(16)}`
+          console.log('[PIMLICO PAYMASTER PROXY] 🔧 Replaced null/undefined context with chainId')
+        }
+      }
+    } else if (body.chainId && body.userOperation) {
+      // Legacy custom format - convert to JSON-RPC
+      method = 'pm_sponsorUserOperation'
+      const entryPointAddress = '0x0000000071727De22E5E9d8BAf0edAc6f37da032'
+      params = [body.userOperation, entryPointAddress]
+      rpcId = 1
+      console.log('[PIMLICO PAYMASTER PROXY] 📋 Received legacy format, converting to JSON-RPC')
+    } else {
       return NextResponse.json(
-        { error: 'Missing chainId or userOperation' },
+        { 
+          jsonrpc: '2.0',
+          id: 1,
+          error: {
+            code: -32602,
+            message: 'Invalid request format. Expected JSON-RPC or { chainId, userOperation }'
+          }
+        },
         { status: 400 }
       )
     }
 
-    // Log the userOperation we received for debugging
-    console.log('[PIMLICO PAYMASTER PROXY] 📋 Received userOperation:', {
-      sender: userOperation.sender,
-      nonce: userOperation.nonce,
-      hasFactory: !!userOperation.factory,
-      hasFactoryData: !!userOperation.factoryData,
-      callDataLength: userOperation.callData?.length || 0,
-      hasSignature: !!userOperation.signature,
-      signaturePreview: userOperation.signature?.substring(0, 20) || 'none',
-    })
-
     // Pimlico API endpoint
     const pimlicoApiUrl = `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${pimlicoApiKey}`
 
-    // EntryPoint v0.7 address used on Celo (and other chains) for Kernel / ERC-4337
-    // This must be passed explicitly to pm_sponsorUserOperation
-    const entryPointAddress = '0x0000000071727De22E5E9d8BAf0edAc6f37da032'
+    console.log('[PIMLICO PAYMASTER PROXY] 📤 Forwarding to Pimlico:', { method, chainId, paramsCount: params.length })
 
-    // Forward request to Pimlico
+    // Forward JSON-RPC request to Pimlico
     const response = await fetch(pimlicoApiUrl, {
       method: 'POST',
       headers: {
@@ -55,13 +109,9 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         jsonrpc: '2.0',
-        id: 1,
-        method: 'pm_sponsorUserOperation',
-        // Per Pimlico docs for EntryPoint v0.7:
-        // params[0]: userOperation object (unpacked format with paymaster/paymasterData/etc set to null)
-        // params[1]: entryPoint address as STRING
-        // params[2]: optional sponsorshipPolicyId object
-        params: [userOperation, entryPointAddress],
+        id: rpcId,
+        method,
+        params,
       }),
     })
 
@@ -69,18 +119,30 @@ export async function POST(request: NextRequest) {
       const errorText = await response.text()
       console.error('[PIMLICO PAYMASTER PROXY] ❌ HTTP error:', response.status, errorText)
       
-      // Provide helpful error message for 401 Unauthorized
       if (response.status === 401) {
         console.error('[PIMLICO PAYMASTER PROXY] ❌ 401 Unauthorized - API key may be invalid or expired')
-        console.error('[PIMLICO PAYMASTER PROXY] 💡 Check: 1) API key is correct in Vercel, 2) API key is active in Pimlico dashboard, 3) API key has access to Celo Mainnet (chain 42220)')
         return NextResponse.json(
-          { error: 'Pimlico API authentication failed (401). Please verify PIMLICO_API_KEY is correct and has access to Celo Mainnet (chain 42220). Check your Pimlico dashboard: https://dashboard.pimlico.io' },
+          { 
+            jsonrpc: '2.0',
+            id: rpcId,
+            error: {
+              code: -32000,
+              message: 'Pimlico API authentication failed (401). Please verify PIMLICO_API_KEY is correct and has access to chain ' + chainId
+            }
+          },
           { status: 401 }
         )
       }
       
       return NextResponse.json(
-        { error: `Pimlico API error: ${response.status} ${errorText}` },
+        { 
+          jsonrpc: '2.0',
+          id: rpcId,
+          error: {
+            code: -32000,
+            message: `Pimlico API error: ${response.status} ${errorText}`
+          }
+        },
         { status: response.status }
       )
     }
@@ -89,57 +151,34 @@ export async function POST(request: NextRequest) {
 
     if (data.error) {
       console.error('[PIMLICO PAYMASTER PROXY] ❌ RPC error:', data.error)
-      return NextResponse.json(
-        { error: `Pimlico API error: ${data.error.message || JSON.stringify(data.error)}` },
-        { status: 500 }
-      )
+      return NextResponse.json(data, { status: 500 })
     }
 
     console.log('[PIMLICO PAYMASTER PROXY] ✅ Paymaster response:', {
+      method,
       hasResult: !!data.result,
       hasPaymaster: !!data.result?.paymaster,
       hasPaymasterData: !!data.result?.paymasterData,
       paymasterAddress: data.result?.paymaster || 'none',
       paymasterDataLength: data.result?.paymasterData?.length || 0,
-      callGasLimit: data.result?.callGasLimit,
-      verificationGasLimit: data.result?.verificationGasLimit,
-      preVerificationGas: data.result?.preVerificationGas,
+      // v0.7 paymaster gas limits
+      paymasterVerificationGasLimit: data.result?.paymasterVerificationGasLimit,
+      paymasterPostOpGasLimit: data.result?.paymasterPostOpGasLimit,
     })
 
-    // EntryPoint v0.7 returns unpacked format: paymaster, paymasterData, etc.
-    // EntryPoint v0.6 returns packed format: paymasterAndData
-    if (!data.result) {
-      console.error('[PIMLICO PAYMASTER PROXY] ❌ Paymaster response missing result')
-      console.error('[PIMLICO PAYMASTER PROXY] 📋 Full response:', JSON.stringify(data, null, 2))
-      return NextResponse.json(
-        { error: 'Pimlico paymaster returned empty result. Check that your Pimlico account has sufficient funds.' },
-        { status: 500 }
-      )
-    }
-
-    // Check for v0.7 unpacked format (paymaster + paymasterData)
-    if (data.result.paymaster && data.result.paymasterData !== undefined) {
-      console.log('[PIMLICO PAYMASTER PROXY] ✅ EntryPoint v0.7 response (unpacked format)')
-      return NextResponse.json(data.result)
-    }
-
-    // Check for v0.6 packed format (paymasterAndData)
-    if (data.result.paymasterAndData) {
-      console.log('[PIMLICO PAYMASTER PROXY] ✅ EntryPoint v0.6 response (packed format)')
-      return NextResponse.json(data.result)
-    }
-
-    // If neither format is present, it's an error
-    console.error('[PIMLICO PAYMASTER PROXY] ❌ Paymaster response missing both v0.6 and v0.7 paymaster fields')
-    console.error('[PIMLICO PAYMASTER PROXY] 📋 Full response:', JSON.stringify(data, null, 2))
-    return NextResponse.json(
-      { error: 'Pimlico paymaster returned invalid response format. Check that your Pimlico account has sufficient funds.' },
-      { status: 500 }
-    )
+    // Return the full JSON-RPC response (the SDK expects this format)
+    return NextResponse.json(data)
   } catch (error) {
-    console.error('[PIMLICO PROXY] Error:', error)
+    console.error('[PIMLICO PAYMASTER PROXY] Error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { 
+        jsonrpc: '2.0',
+        id: 1,
+        error: {
+          code: -32000,
+          message: error instanceof Error ? error.message : 'Unknown error'
+        }
+      },
       { status: 500 }
     )
   }

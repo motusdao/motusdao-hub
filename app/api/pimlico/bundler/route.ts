@@ -61,11 +61,15 @@ export async function POST(request: NextRequest) {
           jsonRpcRequest.params.length > 0) {
         const userOp = jsonRpcRequest.params[0] as Record<string, unknown>
         if (userOp && typeof userOp === 'object') {
-          // For gas estimation, remove all paymaster fields
+          // For gas estimation with paymaster, DO NOT remove paymaster fields!
+          // EntryPoint v0.7 requires paymaster fields to correctly simulate sponsored operations.
+          // Previous code removed paymaster fields which caused AA21 error.
           if (jsonRpcRequest.method === 'eth_estimateUserOperationGas') {
-            if ('paymasterAndData' in userOp || 'paymaster' in userOp) {
-              console.log('[PIMLICO BUNDLER PROXY] 🔧 Removing paymaster fields from gas estimation request')
-              const { paymasterAndData, paymaster, paymasterData, paymasterVerificationGasLimit, paymasterPostOpGasLimit, ...userOpClean } = userOp
+            // KEEP paymaster fields for estimation - Pimlico needs them
+            // Only remove paymasterAndData if unpacked fields exist (v0.6 → v0.7 cleanup)
+            if ('paymasterAndData' in userOp && 'paymaster' in userOp && userOp.paymaster) {
+              console.log('[PIMLICO BUNDLER PROXY] 🔧 Removing redundant paymasterAndData (keeping v0.7 unpacked fields)')
+              const { paymasterAndData: _, ...userOpClean } = userOp
               jsonRpcRequest.params[0] = userOpClean
             }
           }
