@@ -20,6 +20,11 @@ const jura = Jura({
 export const metadata: Metadata = {
   title: "MotusDAO Hub - Mental Health & Wellness",
   description: "Plataforma integral de salud mental con IA, psicoterapia y academia",
+  icons: {
+    icon: '/logo.svg',
+    shortcut: '/logo.svg',
+    apple: '/logo.svg',
+  },
 };
 
 export default function RootLayout({
