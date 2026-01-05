@@ -566,7 +566,7 @@ export default function MotusNamesPage() {
                   {wallets.find(w => w.walletClientType === 'privy')?.address || 'No encontrada'}
                 </p>
                 <p className="text-yellow-600 dark:text-yellow-400 mt-1 text-[10px]">
-                  ⚠️ Esta es la "semilla" que genera tu smart wallet. Si cambia, tu smart wallet cambia.
+                  ⚠️ Esta es la &quot;semilla&quot; que genera tu smart wallet. Si cambia, tu smart wallet cambia.
                 </p>
               </div>
               

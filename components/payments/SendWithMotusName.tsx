@@ -46,7 +46,7 @@ export default function SendWithMotusName({ onSuccess }: SendWithMotusNameProps 
       } else if (resolved.type === 'name') {
         setError(`El nombre "${value}" no está registrado en Motus Name Service`)
       }
-    } catch (err) {
+    } catch {
       setError('Error al resolver el destinatario')
     } finally {
       setIsResolving(false)

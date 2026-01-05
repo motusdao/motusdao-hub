@@ -212,7 +212,7 @@ export default function PagosPage() {
         if (name) {
           setResolvedDisplayName(name + '.motus')
         }
-      } catch (err) {
+      } catch {
         // Ignore errors in reverse lookup
         console.log('Reverse lookup failed, using address only')
       } finally {
