@@ -52,7 +52,7 @@ export async function GET(request: Request) {
         args: [motusName],
       }) as bigint
       
-      if (tokenId && tokenId > 0n) {
+      if (tokenId && tokenId > BigInt(0)) {
         // Get owner of the NFT
         nftOwner = await publicClient.readContract({
           address: MNS_CONTRACT_ADDRESS,
