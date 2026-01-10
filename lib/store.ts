@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
 export type UserRole = 'usuario' | 'psm' | 'admin'
+export type MatrixColor = 'green' | 'red' | 'orange' | 'blue' | 'pink'
 
 interface UIState {
   // Role management
@@ -17,6 +18,10 @@ interface UIState {
   theme: 'light' | 'dark' | 'matrix'
   setTheme: (theme: 'light' | 'dark' | 'matrix') => void
   toggleTheme: () => void
+  
+  // Matrix color customization
+  matrixColor: MatrixColor
+  setMatrixColor: (color: MatrixColor) => void
   
   // Note: Authentication state is now handled by Privy directly
   // No need for mock auth state in the store
@@ -41,6 +46,10 @@ export const useUIStore = create<UIState>()(
         theme: state.theme === 'light' ? 'dark' : state.theme === 'dark' ? 'matrix' : 'light'
       })),
       
+      // Matrix color customization
+      matrixColor: 'green',
+      setMatrixColor: (color) => set({ matrixColor: color }),
+      
       // Authentication is now handled by Privy - no mock state needed
     }),
     {
@@ -49,6 +58,7 @@ export const useUIStore = create<UIState>()(
         role: state.role,
         theme: state.theme,
         sidebarOpen: state.sidebarOpen,
+        matrixColor: state.matrixColor,
       }),
     }
   )
