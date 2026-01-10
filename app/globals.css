@@ -102,6 +102,86 @@
   font-family: 'Share Tech Mono', 'Courier New', 'Monaco', monospace !important;
 }
 
+/* Matrix Red variant */
+[data-theme="matrix"][data-matrix-color="red"] {
+  --matrix-text: #ff1744;   /* neon red body text */
+  --matrix-accent: #ff4444; /* bright neon red for titles/links */
+  --matrix-border: rgba(255,23,68,0.6);
+  --matrix-placeholder: #ff5555;
+  
+  --foreground: 0 100% 55%; /* neon red */
+  --card-foreground: 0 100% 55%;
+  --popover-foreground: 0 100% 55%;
+  --primary: 0 100% 55%; /* bright neon red */
+  --secondary-foreground: 0 100% 55%;
+  --muted-foreground: 0 100% 30%;
+  --accent-foreground: 0 100% 55%;
+  --border: 0 100% 55%; /* neon red border */
+  --ring: 0 100% 55%;
+  
+  color: var(--matrix-text);
+}
+
+/* Matrix Orange variant */
+[data-theme="matrix"][data-matrix-color="orange"] {
+  --matrix-text: #ff9100;   /* neon orange body text */
+  --matrix-accent: #ffaa00; /* bright neon orange for titles/links */
+  --matrix-border: rgba(255,145,0,0.6);
+  --matrix-placeholder: #ffbb33;
+  
+  --foreground: 30 100% 50%; /* neon orange */
+  --card-foreground: 30 100% 50%;
+  --popover-foreground: 30 100% 50%;
+  --primary: 30 100% 50%; /* bright neon orange */
+  --secondary-foreground: 30 100% 50%;
+  --muted-foreground: 30 100% 30%;
+  --accent-foreground: 30 100% 50%;
+  --border: 30 100% 50%; /* neon orange border */
+  --ring: 30 100% 50%;
+  
+  color: var(--matrix-text);
+}
+
+/* Matrix Blue variant */
+[data-theme="matrix"][data-matrix-color="blue"] {
+  --matrix-text: #00e5ff;   /* neon blue body text */
+  --matrix-accent: #00b8ff; /* bright neon blue for titles/links */
+  --matrix-border: rgba(0,229,255,0.6);
+  --matrix-placeholder: #33ddff;
+  
+  --foreground: 190 100% 50%; /* neon blue */
+  --card-foreground: 190 100% 50%;
+  --popover-foreground: 190 100% 50%;
+  --primary: 190 100% 50%; /* bright neon blue */
+  --secondary-foreground: 190 100% 50%;
+  --muted-foreground: 190 100% 30%;
+  --accent-foreground: 190 100% 50%;
+  --border: 190 100% 50%; /* neon blue border */
+  --ring: 190 100% 50%;
+  
+  color: var(--matrix-text);
+}
+
+/* Matrix Pink variant */
+[data-theme="matrix"][data-matrix-color="pink"] {
+  --matrix-text: #ff10f0;   /* neon pink body text */
+  --matrix-accent: #ff44ff; /* bright neon pink for titles/links */
+  --matrix-border: rgba(255,16,240,0.6);
+  --matrix-placeholder: #ff66ff;
+  
+  --foreground: 300 100% 53%; /* neon pink */
+  --card-foreground: 300 100% 53%;
+  --popover-foreground: 300 100% 53%;
+  --primary: 300 100% 53%; /* bright neon pink */
+  --secondary-foreground: 300 100% 53%;
+  --muted-foreground: 300 100% 30%;
+  --accent-foreground: 300 100% 53%;
+  --border: 300 100% 53%; /* neon pink border */
+  --ring: 300 100% 53%;
+  
+  color: var(--matrix-text);
+}
+
 * {
   border-color: hsl(var(--border));
 }
@@ -580,6 +660,74 @@ body::after {
     radial-gradient(circle at 80% 20%, rgba(57,255,20, 0.12) 0%, transparent 50%),
     radial-gradient(circle at 40% 80%, rgba(50,255,50, 0.1) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(0,255,65, 0.08) 0%, transparent 50%);
+}
+
+/* Red Matrix gradient overrides */
+[data-theme="matrix"][data-matrix-color="red"] body::before {
+  background: 
+    radial-gradient(60% 60% at 20% 20%, rgba(255,23,68,.15), transparent 60%),
+    radial-gradient(60% 60% at 80% 30%, rgba(255,68,68,.12), transparent 60%),
+    radial-gradient(70% 70% at 50% 80%, rgba(255,85,85,.18), transparent 60%),
+    linear-gradient(45deg, rgba(255,23,68,.08) 0%, rgba(255,68,68,.08) 50%, rgba(255,85,85,.10) 100%);
+}
+
+[data-theme="matrix"][data-matrix-color="red"] body::after {
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(255,23,68, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,68,68, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(255,85,85, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255,23,68, 0.08) 0%, transparent 50%);
+}
+
+/* Orange Matrix gradient overrides */
+[data-theme="matrix"][data-matrix-color="orange"] body::before {
+  background: 
+    radial-gradient(60% 60% at 20% 20%, rgba(255,145,0,.15), transparent 60%),
+    radial-gradient(60% 60% at 80% 30%, rgba(255,170,0,.12), transparent 60%),
+    radial-gradient(70% 70% at 50% 80%, rgba(255,187,51,.18), transparent 60%),
+    linear-gradient(45deg, rgba(255,145,0,.08) 0%, rgba(255,170,0,.08) 50%, rgba(255,187,51,.10) 100%);
+}
+
+[data-theme="matrix"][data-matrix-color="orange"] body::after {
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(255,145,0, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,170,0, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(255,187,51, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255,145,0, 0.08) 0%, transparent 50%);
+}
+
+/* Blue Matrix gradient overrides */
+[data-theme="matrix"][data-matrix-color="blue"] body::before {
+  background: 
+    radial-gradient(60% 60% at 20% 20%, rgba(0,229,255,.15), transparent 60%),
+    radial-gradient(60% 60% at 80% 30%, rgba(0,184,255,.12), transparent 60%),
+    radial-gradient(70% 70% at 50% 80%, rgba(51,221,255,.18), transparent 60%),
+    linear-gradient(45deg, rgba(0,229,255,.08) 0%, rgba(0,184,255,.08) 50%, rgba(51,221,255,.10) 100%);
+}
+
+[data-theme="matrix"][data-matrix-color="blue"] body::after {
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(0,229,255, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(0,184,255, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(51,221,255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0,229,255, 0.08) 0%, transparent 50%);
+}
+
+/* Pink Matrix gradient overrides */
+[data-theme="matrix"][data-matrix-color="pink"] body::before {
+  background: 
+    radial-gradient(60% 60% at 20% 20%, rgba(255,16,240,.15), transparent 60%),
+    radial-gradient(60% 60% at 80% 30%, rgba(255,68,255,.12), transparent 60%),
+    radial-gradient(70% 70% at 50% 80%, rgba(255,102,255,.18), transparent 60%),
+    linear-gradient(45deg, rgba(255,16,240,.08) 0%, rgba(255,68,255,.08) 50%, rgba(255,102,255,.10) 100%);
+}
+
+[data-theme="matrix"][data-matrix-color="pink"] body::after {
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(255,16,240, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, rgba(255,68,255, 0.12) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(255,102,255, 0.1) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(255,16,240, 0.08) 0%, transparent 50%);
 }
 
 /* Override glassmorphism for Matrix theme */

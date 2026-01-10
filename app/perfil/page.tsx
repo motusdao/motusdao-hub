@@ -5,6 +5,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Section } from '@/components/ui/Section'
 import { GradientText } from '@/components/ui/GradientText'
 import { CTAButton } from '@/components/ui/CTAButton'
+import { MatrixColorSelector } from '@/components/profile/MatrixColorSelector'
 import { 
   User, 
   Save,
@@ -50,7 +51,7 @@ interface UserData {
 }
 
 export default function PerfilPage() {
-  const { role } = useUIStore()
+  const { role, setMatrixColor } = useUIStore()
   
   // Privy authentication hooks
   const { authenticated, user, ready } = usePrivy()
@@ -350,6 +351,11 @@ export default function PerfilPage() {
 
   const handleInputChange = (field: keyof ProfileData, value: string) => {
     setProfileData(prev => ({ ...prev, [field]: value }))
+  }
+
+  const handleMatrixColorChange = (color: 'green' | 'red' | 'orange' | 'blue' | 'pink') => {
+    // Solo actualiza el store (localStorage), no el estado del perfil
+    setMatrixColor(color)
   }
 
   const handleAvatarClick = () => {
@@ -794,6 +800,13 @@ export default function PerfilPage() {
                         <option value="en">English</option>
                         <option value="pt">Português</option>
                       </select>
+                    </div>
+
+                    {/* Matrix Color Customization */}
+                    <div className="pt-4 border-t border-white/10">
+                      <MatrixColorSelector 
+                        onColorChange={handleMatrixColorChange}
+                      />
                     </div>
                   </form>
                 </GlassCard>
