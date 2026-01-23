@@ -31,7 +31,7 @@ model course {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime
   enrollments enrollment[]
-  lessons     lesson[]
+  modules     module[]
 
   @@map("courses")
 }
@@ -48,6 +48,7 @@ model enrollment {
   user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+  @@map("enrollments")
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -64,20 +65,36 @@ model journalEntry {
   @@map("journal_entries")
 }
 
-model lesson {
+model module {
   id          String   @id
   courseId    String
   title       String
+  summary     String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime
+  course      course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     lesson[]
+
+  @@unique([courseId, order])
+  @@map("modules")
+}
+
+model lesson {
+  id          String   @id
+  moduleId    String
+  title       String
   slug        String
+  summary     String?
   contentMDX  String?
   order       Int      @default(0)
   duration    Int?
   isPublished Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime
-  course      course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module      module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
-  @@unique([courseId, slug])
+  @@unique([moduleId, slug])
   @@map("lessons")
 }
 
