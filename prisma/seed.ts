@@ -134,6 +134,25 @@ async function main() {
     }
   })
 
+  // Create module for course 1
+  const module1 = await prisma.module.upsert({
+    where: {
+      courseId_order: {
+        courseId: course1.id,
+        order: 0
+      }
+    },
+    update: {},
+    create: {
+      id: `mod_${course1.id}_default`,
+      courseId: course1.id,
+      title: 'Módulo Principal',
+      summary: 'Módulo principal del curso de Fundamentos de Mindfulness',
+      order: 0,
+      updatedAt: new Date()
+    }
+  })
+
   // Create lessons for course 1
   const lessons1 = [
     {
@@ -173,20 +192,39 @@ async function main() {
   for (const lesson of lessons1) {
     await prisma.lesson.upsert({
       where: { 
-        courseId_slug: {
-          courseId: course1.id,
+        moduleId_slug: {
+          moduleId: module1.id,
           slug: lesson.slug
         }
       },
       update: {},
       create: {
         id: `lesson_${course1.id}_${lesson.slug}`,
-        courseId: course1.id,
+        moduleId: module1.id,
         ...lesson,
         updatedAt: new Date()
       }
     })
   }
+
+  // Create module for course 2
+  const module2 = await prisma.module.upsert({
+    where: {
+      courseId_order: {
+        courseId: course2.id,
+        order: 0
+      }
+    },
+    update: {},
+    create: {
+      id: `mod_${course2.id}_default`,
+      courseId: course2.id,
+      title: 'Módulo Principal',
+      summary: 'Módulo principal del curso de Manejo de Ansiedad y Estrés',
+      order: 0,
+      updatedAt: new Date()
+    }
+  })
 
   // Create lessons for course 2
   const lessons2 = [
@@ -219,15 +257,15 @@ async function main() {
   for (const lesson of lessons2) {
     await prisma.lesson.upsert({
       where: { 
-        courseId_slug: {
-          courseId: course2.id,
+        moduleId_slug: {
+          moduleId: module2.id,
           slug: lesson.slug
         }
       },
       update: {},
       create: {
         id: `lesson_${course2.id}_${lesson.slug}`,
-        courseId: course2.id,
+        moduleId: module2.id,
         ...lesson,
         updatedAt: new Date()
       }
