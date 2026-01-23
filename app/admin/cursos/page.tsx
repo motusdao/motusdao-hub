@@ -19,9 +19,7 @@ import {
   Users,
   X,
   Save,
-  Image as ImageIcon,
-  ChevronDown,
-  ChevronUp
+  Image as ImageIcon
 } from 'lucide-react'
 
 interface Course {
@@ -171,10 +169,10 @@ export default function AdminCursosPage() {
           imageUrl: courseData.imageUrl || '',
           isPublished: courseData.isPublished,
           modules: courseData.modules && courseData.modules.length > 0
-            ? courseData.modules.map((module: any) => ({
+            ? courseData.modules.map((module: { title: string; summary: string | null; lessons: Array<{ title: string; summary: string | null; contentMDX: string | null; duration: number | null; isPublished: boolean }> }) => ({
                 title: module.title,
                 summary: module.summary || '',
-                lessons: module.lessons.map((lesson: any) => ({
+                lessons: module.lessons.map((lesson: { title: string; summary: string | null; contentMDX: string | null; duration: number | null; isPublished: boolean }) => ({
                   title: lesson.title,
                   summary: lesson.summary || '',
                   contentMdx: lesson.contentMDX || '',
@@ -311,7 +309,7 @@ export default function AdminCursosPage() {
         let errorData
         try {
           errorData = await response.json()
-        } catch (e) {
+        } catch {
           errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
         }
         const errorMessage = errorData.error || errorData.message || 'Error al guardar el curso'

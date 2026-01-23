@@ -174,7 +174,7 @@ export async function PATCH(
     }
 
     // Update course with modules and lessons in a transaction
-    const course = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       // Update the main course data
       const updatedCourse = await tx.course.update({
         where: { id: courseId },
@@ -286,7 +286,14 @@ export async function PATCH(
       }
     })
 
-    const lessonsCount = courseWithRelations?.modules.reduce((total, module) => total + module.lessons.length, 0) || 0
+    if (!courseWithRelations) {
+      return NextResponse.json(
+        { error: 'Course not found' },
+        { status: 404 }
+      )
+    }
+
+    const lessonsCount = courseWithRelations.modules.reduce((total, module) => total + module.lessons.length, 0)
 
     return NextResponse.json({
       success: true,
@@ -355,7 +362,7 @@ export async function DELETE(
       include: {
         _count: {
           select: {
-            lessons: true,
+            modules: true,
             enrollments: true
           }
         }

@@ -9,7 +9,6 @@ import {
   GraduationCap, 
   Clock, 
   Users, 
-  Star, 
   Play,
   BookOpen,
   Award,

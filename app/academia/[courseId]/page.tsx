@@ -11,9 +11,6 @@ import {
   Clock,
   BookOpen,
   Users,
-  Star,
-  CheckCircle,
-  Lock,
   Download
 } from 'lucide-react'
 import Link from 'next/link'

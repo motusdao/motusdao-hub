@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
           // Create lessons for this module
           // Filter out empty lessons
           const validLessons = moduleData.lessons && Array.isArray(moduleData.lessons)
-            ? moduleData.lessons.filter(l => l.title || l.contentMdx || l.contentMDX)
+            ? moduleData.lessons.filter((l: { title?: string; contentMdx?: string; contentMDX?: string }) => l.title || l.contentMdx || l.contentMDX)
             : []
           
           if (validLessons.length > 0) {
@@ -262,13 +262,20 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    if (!createdCourse) {
+      return NextResponse.json(
+        { error: 'Failed to fetch created course' },
+        { status: 500 }
+      )
+    }
+
     // Get counts separately to avoid Prisma client cache issues
     const [modulesCount, enrollmentsCount] = await Promise.all([
       prisma.module.count({ where: { courseId: course.id } }),
       prisma.enrollment.count({ where: { courseId: course.id } })
     ])
 
-    const lessonsCount = createdCourse?.modules.reduce((total, module) => total + module.lessons.length, 0) || 0
+    const lessonsCount = createdCourse.modules.reduce((total, module) => total + module.lessons.length, 0)
 
     return NextResponse.json({
       success: true,

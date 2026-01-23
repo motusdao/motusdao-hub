@@ -17,7 +17,7 @@ export async function GET() {
     }
 
     // Test database connection with timeout
-    const connectionTest = await Promise.race([
+    await Promise.race([
       prisma.$queryRaw`SELECT 1 as test`,
       new Promise((_, reject) => 
         setTimeout(() => reject(new Error('Connection timeout after 5 seconds')), 5000)
@@ -39,7 +39,6 @@ export async function GET() {
       tablesFound: Array.isArray(tableCheck) ? tableCheck.length : 0,
       timestamp: new Date().toISOString(),
       environment: process.env.NODE_ENV,
-      // Mask DATABASE_URL for security
       databaseUrlConfigured: true,
       databaseUrlFormat: process.env.DATABASE_URL?.includes('pooler') ? 'pooled' : 'direct',
     })
